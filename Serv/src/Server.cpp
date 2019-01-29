@@ -186,6 +186,7 @@ Server::DistributeMsg( void )
 		m_QueueMsg.pop();
 
 		uInt clientPort				= client->GetPeerPort();
+		uInt clientMsgType			= client->GetMsgType();
 		std::string	clientUserName	= client->GetName();
 		std::string clientMsg		= client->GetMsg();
 

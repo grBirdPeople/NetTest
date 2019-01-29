@@ -21,6 +21,7 @@ public:
 
 	SOCKET&			GetSockRef		( void )	{ return *m_ClientSock; }
 	uInt			GetPeerPort		( void )	{ return m_PeerPort; }
+	uInt			GetMsgType		( void )	{ return m_MsgType; }
 	std::string&	GetPeerIP		( void )	{ return m_PeerIP; }
 	std::string&	GetMsg			( void )	{ return m_Msg; }
 	std::string&	GetName			( void )	{ return m_UserName; }

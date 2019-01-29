@@ -36,7 +36,7 @@ using		sInt = signed int;
 
 enum eMsgType
 {
-	ALL,
+	ALL = 0,
 	WHISPER,
 	TGA_FILE,
 	TGA_CHUNK

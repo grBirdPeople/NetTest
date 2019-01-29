@@ -80,7 +80,10 @@ ServSideClient::ReceiveFromClientSide( void )
 
 			m_Server->m_QueueMsg.push( this );
 
-
+			m_MsgType	= ( m_Msg[ 0 ] == '1' ) ? eMsgType::WHISPER
+						: ( m_Msg[ 0 ] == '2' ) ? eMsgType::TGA_FILE
+						: ( m_Msg[ 0 ] == '3' ) ? eMsgType::TGA_CHUNK
+						: eMsgType::ALL;
 		}
 	}
 }

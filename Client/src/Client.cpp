@@ -142,14 +142,16 @@ Client::ServerConnect( void )
 void
 Client::Send( void )
 {
+	char arrUserInput[ 100 ];
+	memset( arrUserInput, 0, 100 );
+
 	while( true )
 	{
 		const char* msg;
 		std::cout << "> ";
-
-		memset(input, 0, 100);
-		std::cin.getline(input, sizeof(input));
-		msg = input;
+		
+		std::cin.getline( arrUserInput, sizeof( arrUserInput ) );
+		msg = arrUserInput;
 
 		int	iResult = send( *m_ClientSock, msg, strlen( msg ), 0 );
 		if ( iResult == SOCKET_ERROR )
@@ -178,7 +180,6 @@ Client::Receive( void )
 				masg.push_back( arrRecvMsg[i] );
 
 			std::cout << "\nMsg: " << masg << '\n';
-			std::cout << "> " << input;
 		}
 	}
 }
