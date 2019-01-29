@@ -144,10 +144,10 @@ Client::Send( void )
 {
 	char arrSendMsg[ MAX_CHARS ];
 	memset( arrSendMsg, 0, MAX_CHARS );
+	const char* msg;
 
 	while( true )
 	{
-		const char* msg;
 		std::cout << "> ";
 		
 		std::cin.getline( arrSendMsg, sizeof( arrSendMsg ) );
@@ -166,7 +166,8 @@ Client::Send( void )
 void
 Client::Receive( void )
 {
-	char		arrRecvMsg[ MAX_CHARS ];
+	char arrRecvMsg[ MAX_CHARS ];
+	memset( arrRecvMsg, 0, MAX_CHARS );
 	std::string masg;
 
 	while( true )
