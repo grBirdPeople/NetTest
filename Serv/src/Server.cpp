@@ -142,6 +142,7 @@ Server::Admin( void )
 			uInt kickIndex = 0;
 			bool userFound = false;
 
+
 			for( uInt i = ( firstSpace + 1 ); i < adminInput.size(); ++i )
 				user += adminInput.at( i );
 
@@ -161,7 +162,7 @@ Server::Admin( void )
 			{
 				std::cout << "> User '" << user << "' was kicked and you feel better :)\n\n";
 
-				std::string kickMsg = "You have been kicked from the server :)";
+				std::string kickMsg = "> You have been kicked from the server :)";
 
 				int	iResult = send( m_VecServSideClient[ kickIndex ]->GetSockRef(), kickMsg.c_str(), ( size_t )strlen( kickMsg.c_str() ), 0 );
 				if( iResult == SOCKET_ERROR )
@@ -171,7 +172,7 @@ Server::Admin( void )
 			}
 			else
 			{
-				std::cout << "> No user by name '" << user << "' is connected to the server :(\n\n";
+				std::cout << "> No user by name '" << user << "' is connected to the server\n\n";
 			}
 
 
@@ -180,6 +181,7 @@ Server::Admin( void )
 		{
 			std::cout << "> Failed to recognize command: " << command << "\n\n";
 		}
+
 
 		adminInput.clear();
 		command.clear();
