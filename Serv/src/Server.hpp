@@ -24,8 +24,10 @@ public:
 
 	enum eAdminCommands
 	{
-		LIST_USERS = 0,
-		KICK
+		COMMAND = 0,
+		LIST_USERS,
+		KICK,
+		SIZE
 	};
 
 	//////////////////////////////////////////////////

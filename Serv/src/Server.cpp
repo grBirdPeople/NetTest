@@ -99,7 +99,8 @@ Server::Admin( void )
 
 	std::string adminInput;
 	std::string command;
-	uInt firstSpace = 0;
+	uInt firstSpaceInString	= 0;
+	uInt currentCase		= 99;
 
 	while( m_ServerIsAlive )
 	{
@@ -111,7 +112,7 @@ Server::Admin( void )
 		{
 			if( adminInput[ i ] == ' ' )
 			{
-				firstSpace = i;
+				firstSpaceInString = i;
 				break;
 			}
 
@@ -119,14 +120,24 @@ Server::Admin( void )
 		}
 
 
-		if( command == "command" )
+		currentCase	= ( command == "command" ) ? eAdminCommands::COMMAND
+					: ( command == "ls" ) ? eAdminCommands::LIST_USERS
+					: ( command == "kick" ) ? eAdminCommands::KICK
+					: eAdminCommands::SIZE;
+
+
+		switch( currentCase )
 		{
+		case eAdminCommands::COMMAND:
+
 			std::cout << "\n> Available commands:\n";
 			std::cout << "* List connected clients:\tls\n";
 			std::cout << "* Kick client:\t\t\tkick\n\n";
-		}
-		else if( command == "ls" )
-		{
+
+			break;
+
+		case eAdminCommands::LIST_USERS:
+
 			std::cout << "> Number of clients connected: " << m_VecServSideClient.size() << "\n\n";
 
 			for( auto& i : m_VecServSideClient )
@@ -135,57 +146,68 @@ Server::Admin( void )
 				std::cout << "> IP:\t\t" << i->GetPeerIP() << '\n';
 				std::cout << "> Port:\t\t" << i->GetPeerPort() << "\n\n";
 			}
-		}
-		else if( command == "kick" )
-		{
-			std::string user;
-			uInt kickIndex = 0;
-			bool userFound = false;
 
+			break;
 
-			for( uInt i = ( firstSpace + 1 ); i < adminInput.size(); ++i )
-				user += adminInput.at( i );
+		case eAdminCommands::KICK:
 
-
-			for( uInt i = 0; i < m_VecServSideClient.size(); ++i )
+			if( m_VecServSideClient.size() < 0 )
 			{
-				if( m_VecServSideClient[ i ]->GetName() == user )
-				{
-					kickIndex = i;
-					userFound = true;
-					break;
-				}
-			}
-
-
-			if( userFound )
-			{
-				std::cout << "> User '" << user << "' was kicked and you feel better :)\n\n";
-
-				std::string kickMsg = "> You have been kicked from the server :)";
-
-				int	iResult = send( m_VecServSideClient[ kickIndex ]->GetSockRef(), kickMsg.c_str(), ( size_t )strlen( kickMsg.c_str() ), 0 );
-				if( iResult == SOCKET_ERROR )
-					std::cerr << "Kick send failed with error: " << WSAGetLastError() << '\n';
-
-				m_VecServSideClient.erase( m_VecServSideClient.begin() + kickIndex );
+				std::cout << "No clients connected\n\n";
 			}
 			else
 			{
-				std::cout << "> No user by name '" << user << "' is connected to the server\n\n";
+				std::string user;
+				uInt kickIndex = 0;
+				bool userFound = false;
+
+
+				for( uInt i = ( firstSpaceInString + 1 ); i < adminInput.size(); ++i )
+					user += adminInput.at( i );
+
+
+				for( uInt i = 0; i < m_VecServSideClient.size(); ++i )
+				{
+					if( m_VecServSideClient[ i ]->GetName() == user )
+					{
+						kickIndex = i;
+						userFound = true;
+						break;
+					}
+				}
+
+
+				if( userFound )
+				{
+					std::cout << "> User '" << user << "' was kicked and you feel better :)\n\n";
+
+					std::string kickMsg = "> You have been kicked from the server :)";
+
+					int	iResult = send( m_VecServSideClient[ kickIndex ]->GetSockRef(), kickMsg.c_str(), ( size_t )strlen( kickMsg.c_str() ), 0 );
+					if( iResult == SOCKET_ERROR )
+						std::cerr << "Kick send failed with error: " << WSAGetLastError() << '\n';
+
+					m_VecServSideClient.erase( m_VecServSideClient.begin() + kickIndex );
+				}
+				else
+				{
+					std::cout << "> No user by name '" << user << "' is connected to the server\n\n";
+				}
 			}
 
+			break;
 
-		}
-		else
-		{
+		case  eAdminCommands::SIZE:
+
 			std::cout << "> Failed to recognize command: " << command << "\n\n";
+
+			break;
 		}
 
 
 		adminInput.clear();
 		command.clear();
-		firstSpace = 0;
+		firstSpaceInString = 0;
 	}
 }
 
