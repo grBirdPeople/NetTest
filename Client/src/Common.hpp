@@ -44,4 +44,4 @@ enum eMsgType
 
 // WHISPER		= @
 // TGA_FILE		= / followed by dir & filename (including filetype)					// example: /dir/filename.tga
-// TGA_CHUNK	= / followed by dir & filename (including filetype) & dimensions	// example: /dir/filename.tga/16*16*32*32
+// TGA_CHUNK	= // followed by dir & filename (including filetype) & dimensions	// example: /dir/filename.tga/16*16*32*32

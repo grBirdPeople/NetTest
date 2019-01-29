@@ -142,18 +142,41 @@ Client::ServerConnect( void )
 void
 Client::Send( void )
 {
-	char arrSendMsg[ MAX_CHARS ];
-	memset( arrSendMsg, 0, MAX_CHARS );
-	const char* msg;
+	//char arrSendMsg[ MAX_CHARS ];
+	//memset( arrSendMsg, 0, MAX_CHARS );
+	//const char* msg;
+	std::string msg;
 
 	while( true )
 	{
 		std::cout << "> ";
-		
-		std::cin.getline( arrSendMsg, sizeof( arrSendMsg ) );
-		msg = arrSendMsg;
+		std::getline( std::cin, msg );
 
-		int	iResult = send( *m_ClientSock, msg, strlen( msg ), 0 );
+
+
+
+		// works but unfinished
+		if( msg[ 0 ] == '@' )
+		{
+			msg[ 0 ] = eMsgType::WHISPER + 48;
+		}
+		else if( msg[ 0 ] == '/' )
+		{
+			if( msg[ 1 ] == '/' )
+			{
+				msg[ 0 ] = eMsgType::TGA_CHUNK + 48;
+				msg.erase( msg.begin() + 1 );
+			}
+			else
+			{
+				msg[ 0 ] = eMsgType::TGA_FILE + 48;
+			}
+		}
+
+
+
+
+		int	iResult = send( *m_ClientSock, msg.c_str(), strlen( msg.c_str() ), 0 );
 		if ( iResult == SOCKET_ERROR )
 			std::cerr << "Send failed with error: " << WSAGetLastError() << '\n';
 	}
@@ -168,7 +191,7 @@ Client::Receive( void )
 {
 	char arrRecvMsg[ MAX_CHARS ];
 	memset( arrRecvMsg, 0, MAX_CHARS );
-	std::string masg;
+	std::string msg;
 
 	while( true )
 	{
@@ -176,11 +199,11 @@ Client::Receive( void )
 
 		if ( recvSize > 0 )
 		{
-			masg.clear();
+			msg.clear();
 			for ( uInt i = 0; i < ( uInt )recvSize; ++i )
-				masg.push_back( arrRecvMsg[i] );
+				msg.push_back( arrRecvMsg[ i] );
 
-			std::cout << "\nMsg: " << masg << '\n';
+			std::cout << "\nMsg: " << msg << '\n';
 		}
 	}
 }
