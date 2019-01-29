@@ -63,6 +63,9 @@ private:
 
 	uInt		m_CurrentClientState;
 
+	// Where does this go?
+	char		input[100];
+
 	bool		m_ClientIsAlive;
 	bool		m_ClientSockIsAlive;
 

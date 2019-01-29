@@ -144,10 +144,14 @@ Client::Send( void )
 {
 	while( true )
 	{
-		std::string msg;
-		std::cin >> msg;
+		const char* msg;
+		std::cout << "> ";
 
-		int	iResult = send( *m_ClientSock, msg.c_str(), strlen( msg.c_str() ), 0 );
+		memset(input, 0, 100);
+		std::cin.getline(input, sizeof(input));
+		msg = input;
+
+		int	iResult = send( *m_ClientSock, msg, strlen( msg ), 0 );
 		if ( iResult == SOCKET_ERROR )
 			std::cerr << "Send failed with error: " << WSAGetLastError() << '\n';
 	}
@@ -173,7 +177,8 @@ Client::Receive( void )
 			for ( uInt i = 0; i < ( uInt )recvSize; ++i )
 				masg.push_back( arrRecvMsg[i] );
 
-			std::cout << "Msg: " << masg << '\n';
+			std::cout << "\nMsg: " << masg << '\n';
+			std::cout << "> " << input;
 		}
 	}
 }
