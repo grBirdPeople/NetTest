@@ -2,7 +2,7 @@
 
 #include	"Common.hpp"
 
-#define		MAX_RECEIVE_CHARS 128
+#define		MAX_CHARS 128
 
 
 //////////////////////////////////////////////////

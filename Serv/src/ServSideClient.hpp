@@ -2,7 +2,7 @@
 
 #include	"Common.hpp"
 
-#define		MAX_RECEIVE_CHARS 128
+#define		MAX_CHARS 128
 
 class		Server;
 
@@ -38,7 +38,7 @@ private:
 
 private:
 
-	char		m_arrRecvMsg[ MAX_RECEIVE_CHARS ];
+	char		m_arrRecvMsg[ MAX_CHARS ];
 
 	std::string	m_Msg;
 	std::string	m_UserName;

@@ -131,7 +131,7 @@ Client::ServerConnect( void )
 	else
 	{
 		m_InitSendRecvThreads	= true;
-		m_CurrentClientState			= eState::RUN;
+		m_CurrentClientState	= eState::RUN;
 	}
 }
 
@@ -142,16 +142,16 @@ Client::ServerConnect( void )
 void
 Client::Send( void )
 {
-	char arrUserInput[ 100 ];
-	memset( arrUserInput, 0, 100 );
+	char arrSendMsg[ MAX_CHARS ];
+	memset( arrSendMsg, 0, MAX_CHARS );
 
 	while( true )
 	{
 		const char* msg;
 		std::cout << "> ";
 		
-		std::cin.getline( arrUserInput, sizeof( arrUserInput ) );
-		msg = arrUserInput;
+		std::cin.getline( arrSendMsg, sizeof( arrSendMsg ) );
+		msg = arrSendMsg;
 
 		int	iResult = send( *m_ClientSock, msg, strlen( msg ), 0 );
 		if ( iResult == SOCKET_ERROR )
@@ -166,12 +166,12 @@ Client::Send( void )
 void
 Client::Receive( void )
 {
-	char		arrRecvMsg[ MAX_RECEIVE_CHARS ];
+	char		arrRecvMsg[ MAX_CHARS ];
 	std::string masg;
 
 	while( true )
 	{
-		int recvSize = recv( *m_ClientSock, arrRecvMsg, MAX_RECEIVE_CHARS, 0 );
+		int recvSize = recv( *m_ClientSock, arrRecvMsg, MAX_CHARS, 0 );
 
 		if ( recvSize > 0 )
 		{

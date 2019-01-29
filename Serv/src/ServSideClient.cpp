@@ -68,7 +68,7 @@ ServSideClient::ReceiveFromClientSide( void )
 {
 	while( true )
 	{
-		int recvSize = recv( *m_ClientSock, m_arrRecvMsg, MAX_RECEIVE_CHARS, 0 );
+		int recvSize = recv( *m_ClientSock, m_arrRecvMsg, MAX_CHARS, 0 );
 
 		if( recvSize > 0 )
 		{
