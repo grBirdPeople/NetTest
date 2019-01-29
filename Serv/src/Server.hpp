@@ -22,6 +22,12 @@ public:
 		END
 	};
 
+	enum eAdminCommands
+	{
+		LIST_USERS = 0,
+		KICK
+	};
+
 	//////////////////////////////////////////////////
 
 	Server();
@@ -40,6 +46,7 @@ private:
 
 	void	Init			( void );
 
+	void	Admin			( void );
 	void	Listening		( void );
 	void	DistributeMsg	( void );
 
@@ -53,6 +60,7 @@ private:
 
 	std::queue< ServSideClient* >	m_QueueMsg;		// No ownage // Don't delete when pop, only nullptr
 
+	std::thread						m_ThreadAdmin;
 	std::thread						m_ThreadListen;
 	std::thread						m_ThreadDistributeMsg;
 

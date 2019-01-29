@@ -7,7 +7,7 @@
 Server::Server()
 	: m_ServerIP			( nullptr )
 	, m_ServerPort			( 0 )
-	, m_CurrentServState		( eServState::INIT )
+	, m_CurrentServState	( eServState::INIT )
 	, m_ServerIsAlive		( true  )
 	, m_ServerSockIsAlive	( false )
 	, m_InitListenThread	( false )
@@ -42,6 +42,8 @@ Server::Run( void )
 			if( m_InitListenThread == true )
 				CreateThreads();
 
+			if( m_ThreadAdmin.joinable() )
+				m_ThreadAdmin.join();
 			if( m_ThreadListen.joinable() )
 				m_ThreadListen.join();
 			if( m_ThreadDistributeMsg.joinable() )
@@ -87,6 +89,106 @@ Server::Init( void )
 
 
 //////////////////////////////////////////////////
+//	Admin
+//////////////////////////////////////////////////
+void
+Server::Admin( void )
+{
+	std::cout << "> This is server\n";
+	std::cout << "* List commands: command\n\n";
+
+	std::string adminInput;
+	std::string command;
+	uInt firstSpace = 0;
+
+	while( m_ServerIsAlive )
+	{
+		std::cout << "> ";
+		std::getline( std::cin, adminInput );
+
+
+		for( uInt i = 0; i < adminInput.size(); ++i )
+		{
+			if( adminInput[ i ] == ' ' )
+			{
+				firstSpace = i;
+				break;
+			}
+
+			command += adminInput.at( i );
+		}
+
+
+		if( command == "command" )
+		{
+			std::cout << "\n> Available commands:\n";
+			std::cout << "* List connected clients:\tls\n";
+			std::cout << "* Kick client:\t\t\tkick\n\n";
+		}
+		else if( command == "ls" )
+		{
+			std::cout << "> Number of clients connected: " << m_VecServSideClient.size() << "\n\n";
+
+			for( auto& i : m_VecServSideClient )
+			{
+				std::cout << "> User name:\t" << i->GetName() << '\n';
+				std::cout << "> IP:\t\t" << i->GetPeerIP() << '\n';
+				std::cout << "> Port:\t\t" << i->GetPeerPort() << "\n\n";
+			}
+		}
+		else if( command == "kick" )
+		{
+			std::string user;
+			uInt kickIndex = 0;
+			bool userFound = false;
+
+			for( uInt i = ( firstSpace + 1 ); i < adminInput.size(); ++i )
+				user += adminInput.at( i );
+
+
+			for( uInt i = 0; i < m_VecServSideClient.size(); ++i )
+			{
+				if( m_VecServSideClient[ i ]->GetName() == user )
+				{
+					kickIndex = i;
+					userFound = true;
+					break;
+				}
+			}
+
+
+			if( userFound )
+			{
+				std::cout << "> User '" << user << "' was kicked and you feel better :)\n\n";
+
+				std::string kickMsg = "You have been kicked from the server :)";
+
+				int	iResult = send( m_VecServSideClient[ kickIndex ]->GetSockRef(), kickMsg.c_str(), ( size_t )strlen( kickMsg.c_str() ), 0 );
+				if( iResult == SOCKET_ERROR )
+					std::cerr << "Kick send failed with error: " << WSAGetLastError() << '\n';
+
+				m_VecServSideClient.erase( m_VecServSideClient.begin() + kickIndex );
+			}
+			else
+			{
+				std::cout << "> No user by name '" << user << "' is connected to the server :(\n\n";
+			}
+
+
+		}
+		else
+		{
+			std::cout << "> Failed to recognize command: " << command << "\n\n";
+		}
+
+		adminInput.clear();
+		command.clear();
+		firstSpace = 0;
+	}
+}
+
+
+//////////////////////////////////////////////////
 //	Listening
 //////////////////////////////////////////////////
 void Server::Listening( void )
@@ -101,8 +203,8 @@ void Server::Listening( void )
 		std::cerr << "Listening socket failed with error: " << WSAGetLastError() << '\n';
 		m_ServerSockIsAlive	= false;
 	}
-	else
-		std::cerr << "Listening socket creation succeeded\n";
+	//else
+	//	std::cerr << "Listening socket creation succeeded\n";
 
 
 	 sockaddr_in serverInfo;
@@ -131,11 +233,11 @@ void Server::Listening( void )
 			m_ServerSockIsAlive = false;
 		}
 
-		std::cerr << "Listening on socket...\n";
+		//std::cerr << "Listening on socket...\n";
 
 
 		SOCKET* clientSock = new SOCKET;
-		std::cerr << "Waiting for client to connect...\n";
+		//std::cerr << "Waiting for client to connect...\n";
 
 
 		*clientSock = accept( *listenSock, NULL, NULL );
@@ -147,7 +249,7 @@ void Server::Listening( void )
 		}
 		else
 		{
-			std::cout << "Clients connected: " << m_VecServSideClient.size() + 1 << '\n';
+			//std::cout << "Clients connected: " << m_VecServSideClient.size() + 1 << '\n';
 
 			m_VecServSideClient.push_back( new ServSideClient( *clientSock, "No name set", this ) );
 			clientSock = nullptr;
@@ -212,8 +314,10 @@ Server::DistributeMsg( void )
 void
 Server::CreateThreads( void )
 {
+	m_ThreadAdmin			= std::thread( &Server::Admin, this );
 	m_ThreadListen			= std::thread( &Server::Listening, this );
 	m_ThreadDistributeMsg	= std::thread( &Server::DistributeMsg, this );
 
 	m_InitListenThread		= false;
 }
+
