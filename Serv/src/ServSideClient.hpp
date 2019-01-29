@@ -49,6 +49,8 @@ private:
 
 	uInt		m_PeerPort;
 
+	uInt		m_MsgType;
+
 	SOCKET*		m_ClientSock;
 
 	Server*		m_Server;	// No ownage // Don't delete, only nullptr
