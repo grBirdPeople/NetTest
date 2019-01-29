@@ -10,6 +10,7 @@ ServSideClient::ServSideClient( SOCKET& acceptSocket, const std::string userName
 	, m_ClientSock		( new SOCKET )
 	, m_Server			( server )
 	, m_PeerPort		( 0 )
+	, m_MsgType			( eMsgType::ALL )
 {
 	*m_ClientSock	= acceptSocket;
 	m_ThreadReceive	= std::thread( &ServSideClient::ReceiveFromClientSide, this );
@@ -78,6 +79,8 @@ ServSideClient::ReceiveFromClientSide( void )
 				m_Msg.push_back( m_arrRecvMsg[ i ] );
 
 			m_Server->m_QueueMsg.push( this );
+
+
 		}
 	}
 }
