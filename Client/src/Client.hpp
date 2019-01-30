@@ -37,14 +37,17 @@ public:
 
 private:
 
-	void	Init			( void );
+	void			Init			( void );
 
-	void	ServerConnect	( void );
+	void			ServerConnect	( void );
 
-	void	Send			( void );
-	void	Receive			( void );
+	void			Send			( void );
+	void			Receive			( void );
+	void			ReceiveImage	( char arrRecvMsg[] );
 
-	void	CreateThreads	( void );
+	unsigned char*	CutChunk		( std::string msg, unsigned char* buffer );
+
+	void			CreateThreads	( void );
 
 	//////////////////////////////////////////////////
 
