@@ -51,6 +51,8 @@ Server::Run( void )
 				m_ThreadAdmin.join();
 			if( m_ThreadListen.joinable() )
 				m_ThreadListen.join();
+			if( m_HandShake.joinable() )
+				m_HandShake.join();
 			if( m_ThreadDistributeMsg.joinable() )
 				m_ThreadDistributeMsg.join();
 
@@ -181,7 +183,7 @@ Server::Admin( void )
 
 			std::cout << '\n';
 
-			std::cout << ">\tClear screen:\t\t\t\cls\n";
+			std::cout << ">\tClear screen:\t\t\tcls\n";
 			std::cout << ">\tKick client:\t\t\tkick\n";
 			std::cout << ">\tList connected clients:\t\tls\n";
 			std::cout << ">\tTerminate server:\t\tterminate\n";
@@ -360,6 +362,8 @@ void Server::Listen( void )
 		{
 			//std::cout << "Clients connected: " << m_VecServSideClient.size() + 1 << '\n';
 
+			//m_QueueShake.push( new ServSideClient( *clientSock, "NoName", this ) );
+
 			m_VecServSideClient.push_back( new ServSideClient( *clientSock, "NoName", this ) );
 			clientSock = nullptr;
 		}
@@ -397,6 +401,7 @@ Server::Distribute( void )
 	while( m_ServerSockIsAlive )
 	{
 		m_Mutex.lock();
+
 
 		while( m_QueueJob.empty() )
 			Sleep( 1 );
@@ -476,8 +481,9 @@ Server::Distribute( void )
 
 
 		m_Mutex.unlock();
-		pClient = nullptr;
 	}
+
+	pClient = nullptr;
 }
 
 
@@ -489,6 +495,7 @@ Server::CreateThreads( void )
 {
 	m_ThreadAdmin			= std::thread( &Server::Admin, this );
 	m_ThreadListen			= std::thread( &Server::Listen, this );
+	m_HandShake				= std::thread( &Server::HandShake, this );
 	m_ThreadDistributeMsg	= std::thread( &Server::Distribute, this );
 
 	m_InitListenThread		= false;
@@ -496,11 +503,72 @@ Server::CreateThreads( void )
 
 
 //////////////////////////////////////////////////
-//	PushClient
+//	HandShake
 //////////////////////////////////////////////////
 void
-Server::PushClient( ServSideClient& client )
+Server::HandShake( void )
 {
-	m_VecServSideClient.push_back( &client );
-}
+	char			m_arrRecvOkMsg[ MAX_CHARS ];
 
+	ServSideClient*	pClient = nullptr;	// No ownage // Only ptr are copied and used to fecth client info
+
+	uInt			clientPort;
+
+	int				iResult;
+
+	std::string		clientUserName;
+	std::string		msg;
+	std::string		whisperAtUserName;
+
+
+	while( m_ServerIsAlive )
+	{
+		m_Mutex.lock();
+
+
+		while( m_QueueShake.empty() )
+			Sleep( 1 );
+
+		if( m_QueueShake.empty() )
+			continue;
+
+
+		pClient = m_QueueShake.front();
+		m_QueueShake.pop();
+
+
+		// Send init connect confirm to client
+		msg = '9';
+
+		iResult = send( pClient->GetSockRef(), msg.c_str(), ( size_t )strlen( msg.c_str() ), 0 );
+		if( iResult == SOCKET_ERROR )
+			std::cerr << "\nSend failed with error: " << WSAGetLastError() << '\n';
+
+
+		// Recieve client username
+		int recvSize = recv( pClient->GetSockRef(), m_arrRecvOkMsg, MAX_CHARS, 0 );
+
+		msg.clear();
+
+		for( uInt i = 0; i < ( uInt )recvSize; ++i )
+			msg.push_back( m_arrRecvOkMsg[ i ] );
+
+		pClient->SetUserName( msg );
+
+		
+		// Send established connect to client
+		msg = "Server connection established";
+
+		iResult = send( pClient->GetSockRef(), msg.c_str(), ( size_t )strlen( msg.c_str() ), 0 );
+		if( iResult == SOCKET_ERROR )
+			std::cerr << "\nSend failed with error: " << WSAGetLastError() << '\n';
+
+
+		// Add client to connected client pool
+		m_VecServSideClient.push_back( pClient );
+		pClient = nullptr;
+
+
+		m_Mutex.unlock();
+	}
+}

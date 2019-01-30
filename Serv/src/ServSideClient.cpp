@@ -169,7 +169,7 @@ ServSideClient::ReceiveFromClientSide( void )
 
 
 		default:
-			std::cerr << "\Something in ServSideClient::ReceiveFromClientSide() borke\n";
+			std::cerr << "\nSomething in ServSideClient::ReceiveFromClientSide() borke\n";
 			break;	// Case end //
 		}
 	}

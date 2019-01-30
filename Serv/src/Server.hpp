@@ -57,18 +57,20 @@ private:
 
 	void	CreateThreads	( void );
 
-	void	PushClient		( ServSideClient& client );
+	void	HandShake		( void );
 
 	//////////////////////////////////////////////////
-
+	
 private:
 
 	std::vector< ServSideClient* >	m_VecServSideClient;
 
+	std::queue< ServSideClient* >	m_QueueShake;
 	std::queue< ServSideClient* >	m_QueueJob;		// No ownage // Don't delete when pop, only nullptr
 
 	std::thread						m_ThreadAdmin;
 	std::thread						m_ThreadListen;
+	std::thread						m_HandShake;
 	std::thread						m_ThreadDistributeMsg;
 
 	std::mutex						m_Mutex;
