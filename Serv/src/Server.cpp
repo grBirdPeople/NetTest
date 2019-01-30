@@ -37,6 +37,14 @@ Server::Run( void )
 
 			break;
 
+		case eServState::DE_INIT:
+
+
+			DeInit();
+
+			break;
+
+
 		case eServState::RUN:
 
 			if( m_InitListenThread == true )
@@ -83,8 +91,19 @@ Server::Init( void )
 	else
 	{
 		m_InitListenThread	= true;
-		m_CurrentServState		= eServState::RUN;
+		m_CurrentServState	= eServState::RUN;
 	}
+}
+
+
+//////////////////////////////////////////////////
+//	DeInit
+//////////////////////////////////////////////////
+void
+Server::DeInit( void )
+{
+	for( auto& i : m_VecServSideClient )
+		AUTO_DEL( i );
 }
 
 
@@ -95,7 +114,7 @@ void
 Server::Admin( void )
 {
 	std::cout << "> This is server\n";
-	std::cout << "* List commands: command\n\n";
+	std::cout << "> List commands: cmd\n\n";
 
 	std::string adminInput;
 	std::string command;
@@ -120,46 +139,69 @@ Server::Admin( void )
 		}
 
 
-		currentCase	= ( command == "command" ) ? eAdminCommands::COMMAND
-					: ( command == "ls" ) ? eAdminCommands::LIST_USERS
-					: ( command == "kick" ) ? eAdminCommands::KICK_USER
-					: eAdminCommands::SIZE;
+		currentCase	=	( command == "cls" )	? eAdminCommands::CLEAR_CONSOLE	:
+						( command == "cmd" )	? eAdminCommands::CMD			:
+						( command == "ls" )		? eAdminCommands::LIST_USERS	:
+						( command == "kick" )	? eAdminCommands::KICK_USER		:
+												eAdminCommands::SIZE;
 
 
 		switch( currentCase )
 		{
-		case eAdminCommands::COMMAND:
+		case eAdminCommands::CLEAR_CONSOLE:
 
-			std::cout << "\n> Available commands:\n";
-			std::cout << "* List connected clients:\tls\n";
-			std::cout << "* Kick client:\t\t\tkick\n\n";
 
-			break;
+			system( "CLS" );
+			std::cout << "> List commands: command\n\n";
+
+
+			break;	// Case end
+
+
+		case eAdminCommands::CMD:
+
+
+			std::cout << '\n';
+
+			std::cout << ">\tClear screen:\t\t\t\cls\n";
+			std::cout << ">\tList connected clients:\tls\n";
+			std::cout << ">\tKick client:\t\t\tkick\n";
+
+			std::cout << '\n';
+
+
+			break;	// Case end
+
 
 		case eAdminCommands::LIST_USERS:
 
+
+			std::cout << '\n';
 			std::cout << "> Number of clients connected: " << m_VecServSideClient.size() << "\n\n";
 
 			for( auto& i : m_VecServSideClient )
 			{
-				std::cout << "> User name:\t" << i->GetName() << '\n';
-				std::cout << "> IP:\t\t" << i->GetPeerIP() << '\n';
-				std::cout << "> Port:\t\t" << i->GetPeerPort() << "\n\n";
+				std::cout << ">\tUser name:\t" << i->GetName() << '\n';
+				std::cout << ">\tIP:\t\t" << i->GetPeerIP() << '\n';
+				std::cout << ">\tPort:\t\t" << i->GetPeerPort() << "\n\n";
 			}
 
-			break;
+			break;	// Case end
+
 
 		case eAdminCommands::KICK_USER:
 
+
 			if( m_VecServSideClient.size() < 0 )
 			{
+				std::cout << '\n';
 				std::cout << "No clients connected\n\n";
 			}
 			else
 			{
-				std::string user;
-				uInt kickIndex = 0;
-				bool userFound = false;
+				std::string	user;
+				uInt		kickIndex = 0;
+				bool		userFound = false;
 
 
 				for( uInt i = ( firstSpaceInString + 1 ); i < adminInput.size(); ++i )
@@ -179,29 +221,42 @@ Server::Admin( void )
 
 				if( userFound )
 				{
-					std::cout << "> User '" << user << "' was kicked and you feel better :)\n\n";
+					std::cout << '\n';
+					std::cout << "> User '" << user << "' was kicked :)\n\n";
 
-					std::string kickMsg = "> You have been kicked from the server :)";
+					std::string kickMsg = "You where kicked from the server :)";
 
 					int	iResult = send( m_VecServSideClient[ kickIndex ]->GetSockRef(), kickMsg.c_str(), ( size_t )strlen( kickMsg.c_str() ), 0 );
 					if( iResult == SOCKET_ERROR )
 						std::cerr << "Kick send failed with error: " << WSAGetLastError() << '\n';
 
-					m_VecServSideClient.erase( m_VecServSideClient.begin() + kickIndex );
+					//delete m_VecServSideClient[ kickIndex ];
+					m_VecServSideClient.erase( m_VecServSideClient.begin() + ( kickIndex + 1 ) );
 				}
 				else
 				{
+					std::cout << '\n';
 					std::cout << "> No user by name '" << user << "' is connected to the server\n\n";
 				}
 			}
 
-			break;
+
+			break;	// Case end
+
 
 		case  eAdminCommands::SIZE:
 
+
+			std::cout << '\n';
 			std::cout << "> Failed to recognize command: " << command << "\n\n";
 
-			break;
+
+			break;	// Case end
+
+
+		default:
+			std::cerr << "\nSomething in ServSideClient::ReceiveFromClientSide() borke\n";
+			break;	// Case end
 		}
 
 
@@ -224,7 +279,7 @@ void Server::Listening( void )
     *listenSock = socket( AF_INET, SOCK_STREAM, IPPROTO_TCP );
 	if( *listenSock == INVALID_SOCKET )
 	{
-		std::cerr << "Listening socket failed with error: " << WSAGetLastError() << '\n';
+		std::cerr << "\nListening socket failed with error: " << WSAGetLastError() << '\n';
 		m_ServerSockIsAlive	= false;
 	}
 	//else
@@ -240,10 +295,10 @@ void Server::Listening( void )
 	int iResult = bind( *listenSock, ( SOCKADDR* )& serverInfo, sizeof( serverInfo ) );
 	if( iResult == SOCKET_ERROR )
 	{
-		std::cerr << "Bind function failed with error. " << WSAGetLastError() << '\n';
+		std::cerr << "\nBind function failed with error. " << WSAGetLastError() << '\n';
 		iResult = closesocket( *listenSock );
 		if ( iResult == SOCKET_ERROR )
-			std::cerr << " Closesocket function failed with error: " << WSAGetLastError() << '\n';
+			std::cerr << "\nClosesocket function failed with error: " << WSAGetLastError() << '\n';
 
 		m_ServerSockIsAlive	= false;
 	}
@@ -253,7 +308,7 @@ void Server::Listening( void )
 	{
 		if( listen( *listenSock, SOMAXCONN ) == SOCKET_ERROR )
 		{
-			std::cerr << "Listen function failed with error: " << WSAGetLastError() << '\n';
+			std::cerr << "\nListen function failed with error: " << WSAGetLastError() << '\n';
 			m_ServerSockIsAlive = false;
 		}
 
@@ -267,7 +322,7 @@ void Server::Listening( void )
 		*clientSock = accept( *listenSock, NULL, NULL );
 		if ( *clientSock == INVALID_SOCKET)
 		{
-			std::cerr << "Accept failed with error: " << WSAGetLastError() << '\n';
+			std::cerr << "\nAccept failed with error: " << WSAGetLastError() << '\n';
 			closesocket( *listenSock );
 			m_ServerSockIsAlive = false;
 		}
@@ -275,7 +330,7 @@ void Server::Listening( void )
 		{
 			//std::cout << "Clients connected: " << m_VecServSideClient.size() + 1 << '\n';
 
-			m_VecServSideClient.push_back( new ServSideClient( *clientSock, "NoNameSet", this ) );
+			m_VecServSideClient.push_back( new ServSideClient( *clientSock, "NoName", this ) );
 			clientSock = nullptr;
 		}
 	}
@@ -343,7 +398,7 @@ Server::Distribute( void )
 				{
 					iResult = send( m_VecServSideClient[ i ]->GetSockRef(), clientMsg.c_str(), ( size_t )strlen( clientMsg.c_str() ), 0 );
 					if( iResult == SOCKET_ERROR )
-						std::cerr << "Send failed with error: " << WSAGetLastError() << '\n';
+						std::cerr << "\nSend failed with error: " << WSAGetLastError() << '\n';
 
 					break;
 				}
@@ -377,7 +432,7 @@ Server::Distribute( void )
 
 				iResult = send( m_VecServSideClient[ i ]->GetSockRef(), clientMsg.c_str(), ( size_t )strlen( clientMsg.c_str() ), 0 );
 				if( iResult == SOCKET_ERROR )
-					std::cerr << "Send failed with error: " << WSAGetLastError() << '\n';
+					std::cerr << "\nSend failed with error: " << WSAGetLastError() << '\n';
 			}
 
 
@@ -385,7 +440,7 @@ Server::Distribute( void )
 
 
 		default:
-			std::cerr << "Something in Server::Distribute() borke\n";
+			std::cerr << "\nSomething in Server::Distribute() borke\n";
 			break;	// Case end
 		}
 

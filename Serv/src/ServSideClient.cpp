@@ -70,15 +70,16 @@ ServSideClient::ReceiveFromClientSide( void )
 	{
 		int recvSize = recv( *m_ClientSock, m_arrRecvMsg, MAX_CHARS, 0 );
 
-		m_MsgType	= ( m_arrRecvMsg[ 0 ] == '1' ) ? eMsgType::WHISPER
-					: ( m_arrRecvMsg[ 0 ] == '2' ) ? eMsgType::TGA_FILE
-					: ( m_arrRecvMsg[ 0 ] == '3' ) ? eMsgType::TGA_CHUNK
-					: eMsgType::ALL;
+		m_MsgType =	( m_arrRecvMsg[ 0 ] == '1' )	? eMsgType::WHISPER		:
+					( m_arrRecvMsg[ 0 ] == '2' )	? eMsgType::TGA_FILE	:
+					( m_arrRecvMsg[ 0 ] == '3' )	? eMsgType::TGA_CHUNK	:
+													eMsgType::ALL;
 
 
 		switch( m_MsgType )
 		{
 		case eMsgType::WHISPER:
+
 
 			if( recvSize > 0 )
 			{
@@ -131,13 +132,14 @@ ServSideClient::ReceiveFromClientSide( void )
 				m_Server->m_QueueMsg.push( this );
 			}
 
-			break;
+			break;	// Case end
+
 
 		case eMsgType::TGA_FILE:
 
 
 
-			break;
+			break;	// Case end
 
 
 
@@ -145,10 +147,11 @@ ServSideClient::ReceiveFromClientSide( void )
 
 
 
-			break;
+			break;	// Case end
 
 
 		case eMsgType::ALL:
+
 
 			if( recvSize > 0 )
 			{
@@ -161,14 +164,13 @@ ServSideClient::ReceiveFromClientSide( void )
 				m_Server->m_QueueMsg.push( this );
 			}
 
-			break;
+			break;	// Case end
+
 
 
 		default:
-
-			std::cerr << "Something in ServSideClient::ReceiveFromClientSide() borke\n";
-
-			break;
+			std::cerr << "\Something in ServSideClient::ReceiveFromClientSide() borke\n";
+			break;	// Case end
 		}
 	}
 }
