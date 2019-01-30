@@ -190,7 +190,7 @@ Client::Send( void )
 					unsigned char* buffer = new (unsigned char[size]);
 					fread(buffer, 1, size, file);
 
-
+					std::cout << msg[0] << std::endl;
 					if(msg[0] == eMsgType::TGA_CHUNK + 48)
 					{
 						buffer = CutChunk(msg, buffer);
@@ -203,10 +203,25 @@ Client::Send( void )
 
 					}
 
+
+
 					if(canSend==true)
 					{
-						msg = msg.substr(0, 1);
-						msg += reinterpret_cast<const char*>(buffer);
+						//ReceiveImage(reinterpret_cast<char*>(buffer));
+						std::string infomsg = msg.substr(0, 1);
+
+						std::size_t rfound = msg.rfind("/",found);
+
+						if (rfound != std::string::npos)
+							infomsg+= msg.substr(rfound+1,found-rfound-1);
+						else
+							infomsg += msg.substr(1, found-1);
+						std::cout << infomsg << std::endl;
+
+
+
+						canSend = false;
+						//msg += reinterpret_cast<const char*>(buffer);
 					}
 
 					fclose(file);
@@ -241,7 +256,8 @@ Client::Send( void )
 unsigned char*
 Client::CutChunk(std::string msg, unsigned char* buffer)
 {
-	int x, y, width, height;
+	int xpos, ypos, width, height;
+	int startPos;
 
 	std::size_t found1 = msg.find("*");
 	std::size_t found2 = msg.find("*",found1+1);
@@ -260,8 +276,8 @@ Client::CutChunk(std::string msg, unsigned char* buffer)
 
 	try
 	{
-		x = stoi(xString);
-		y = stoi(yString);
+		xpos = stoi(xString);
+		ypos = stoi(yString);
 		width = stoi(widthString);
 		height = stoi(heightString);
 	}
@@ -271,10 +287,12 @@ Client::CutChunk(std::string msg, unsigned char* buffer)
 		return nullptr;
 	}
 
-	int imageWidth = 256;
-	int imageHeight = 256;
+	int imageWidth = 50;
+	int imageHeight = 50;
 
-	if (x + width > imageWidth || y + height > imageHeight)
+	startPos = (ypos*imageWidth) + xpos;
+
+	if (xpos + width > imageWidth || ypos + height > imageHeight)
 	{
 		std::cout << "Error: Chunk larger than target image.\n";
 		return nullptr;
@@ -287,17 +305,18 @@ Client::CutChunk(std::string msg, unsigned char* buffer)
 	{
 		for (int x = 0; x < width; x++)
 		{
-			newBuffer[bufferPos] = buffer[(((imageWidth * y) + x) * 4)];
-			newBuffer[bufferPos+1] = buffer[(((imageWidth * y) + x) * 4)+1];
-			newBuffer[bufferPos+2] = buffer[(((imageWidth * y) + x) * 4)+2];
-			newBuffer[bufferPos+3] = buffer[(((imageWidth * y) + x) * 4)+3];
+			newBuffer[bufferPos]   = buffer[startPos + (((imageWidth * y) + x) * 4)];
+			newBuffer[bufferPos+1] = buffer[startPos + (((imageWidth * y) + x) * 4)+1];
+			newBuffer[bufferPos+2] = buffer[startPos + (((imageWidth * y) + x) * 4)+2];
+			newBuffer[bufferPos+3] = buffer[startPos + (((imageWidth * y) + x) * 4)+3];
 			bufferPos += 4;
 		}
 	}
-	buffer = newBuffer;
-	delete newBuffer;
+	//buffer = newBuffer;
 
-	return buffer;
+	ReceiveImage(reinterpret_cast<char*>(newBuffer));
+
+	return newBuffer;
 }
 
 
@@ -343,8 +362,8 @@ Client::ReceiveImage(char arrRecvMsg[])
 	unsigned char* buffer = reinterpret_cast<unsigned char*>(arrRecvMsg);
 
 	unsigned char* pixels;
-	int width;
-	int height;
+	int width=50;
+	int height=50;
 	int ID = 0;
 
 	if (buffer != nullptr)
@@ -385,7 +404,7 @@ Client::ReceiveImage(char arrRecvMsg[])
 		LPCSTR szDirPath = "downloads";
 		CreateDirectory(szDirPath, NULL);
 		FILE *tga2;                 // pointer to file that we will write
-		std::string fileName = (std::string) "downloads/c.tga";
+		std::string fileName = (std::string) "downloads/"+m_UserName+"_file1.tga";
 		tga2 = fopen(fileName.c_str(), "wb");
 
 
@@ -398,10 +417,10 @@ Client::ReceiveImage(char arrRecvMsg[])
 			{
 				// B G R order 
 
-				fputc(pixels[(((256 * y) + x) * 4) + 2], tga2);
-				fputc(pixels[(((256 * y) + x) * 4) + 1], tga2);
-				fputc(pixels[(((256 * y) + x) * 4) + 0], tga2);
-				fputc(pixels[(((256 * y) + x) * 4) + 3], tga2);
+				fputc(pixels[(((width * y) + x) * 4) + 2], tga2);
+				fputc(pixels[(((width * y) + x) * 4) + 1], tga2);
+				fputc(pixels[(((width * y) + x) * 4) + 0], tga2);
+				fputc(pixels[(((width * y) + x) * 4) + 3], tga2);
 
 			}
 		}

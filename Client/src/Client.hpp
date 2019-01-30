@@ -43,7 +43,7 @@ private:
 
 	void			Send			( void );
 	void			Receive			( void );
-	void			ReceiveImage	( char arrRecvMsg[] );
+	void			ReceiveImage	( char arrRecvMsg[]);
 
 	unsigned char*	CutChunk		( std::string msg, unsigned char* buffer );
 
