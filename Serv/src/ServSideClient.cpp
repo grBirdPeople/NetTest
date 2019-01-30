@@ -70,20 +70,56 @@ ServSideClient::ReceiveFromClientSide( void )
 	{
 		int recvSize = recv( *m_ClientSock, m_arrRecvMsg, MAX_CHARS, 0 );
 
-		if( recvSize > 0 )
+		m_MsgType	= ( m_arrRecvMsg[ 0 ] == '1' ) ? eMsgType::WHISPER
+					: ( m_arrRecvMsg[ 0 ] == '2' ) ? eMsgType::TGA_FILE
+					: ( m_arrRecvMsg[ 0 ] == '3' ) ? eMsgType::TGA_CHUNK
+					: eMsgType::ALL;
+
+
+		switch( m_MsgType )
 		{
-			std::unique_lock< std::mutex > uLock( m_Mutex );
+		case eMsgType::WHISPER:
 
-			m_Msg.clear();
-			for( uInt i = 0; i < ( uInt )recvSize; ++i )
-				m_Msg.push_back( m_arrRecvMsg[ i ] );
 
-			m_Server->m_QueueMsg.push( this );
 
-			m_MsgType	= ( m_Msg[ 0 ] == '1' ) ? eMsgType::WHISPER
-						: ( m_Msg[ 0 ] == '2' ) ? eMsgType::TGA_FILE
-						: ( m_Msg[ 0 ] == '3' ) ? eMsgType::TGA_CHUNK
-						: eMsgType::ALL;
+			break;
+
+		case eMsgType::TGA_FILE:
+
+
+
+			break;
+
+
+
+		case eMsgType::TGA_CHUNK:
+
+
+
+			break;
+
+
+		case eMsgType::ALL:
+
+			if( recvSize > 0 )
+			{
+				std::unique_lock< std::mutex > uLock( m_Mutex );
+
+				m_Msg.clear();
+				for( uInt i = 0; i < ( uInt )recvSize; ++i )
+					m_Msg.push_back( m_arrRecvMsg[ i ] );
+
+				m_Server->m_QueueMsg.push( this );
+			}
+
+			break;
+
+
+		default:
+
+			std::cerr << "Something in ServSideClient::ReceiveFromClientSide() borke\n";
+
+			break;
 		}
 	}
 }

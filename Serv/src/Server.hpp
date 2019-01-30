@@ -50,7 +50,7 @@ private:
 
 	void	Admin			( void );
 	void	Listening		( void );
-	void	DistributeMsg	( void );
+	void	Distribute	( void );
 
 	void	CreateThreads	( void );
 

@@ -295,7 +295,7 @@ void Server::Listening( void )
 //	DistributeMsgs
 //////////////////////////////////////////////////
 void
-Server::DistributeMsg( void )
+Server::Distribute( void )
 {
 	while( m_ServerSockIsAlive )
 	{
@@ -311,23 +311,58 @@ Server::DistributeMsg( void )
 		ServSideClient* client		= m_QueueMsg.front();
 		m_QueueMsg.pop();
 
-		uInt clientPort				= client->GetPeerPort();
 		uInt clientMsgType			= client->GetMsgType();
+		uInt clientPort				= client->GetPeerPort();
 		std::string	clientUserName	= client->GetName();
 		std::string clientMsg		= client->GetMsg();
 
 
-		for( uInt i = 0; i < m_VecServSideClient.size(); ++i )
+		switch( clientMsgType )
 		{
-			if( m_VecServSideClient[ i ]->GetPeerPort() == clientPort )
-				continue;
+		case eMsgType::WHISPER:
 
-			int	iResult = send( m_VecServSideClient[ i ]->GetSockRef(), clientMsg.c_str(), ( size_t )strlen( clientMsg.c_str() ), 0 );
-			if( iResult == SOCKET_ERROR )
-				std::cerr << "Send failed with error: " << WSAGetLastError() << '\n';
+
+
+			break;
+
+		case eMsgType::TGA_FILE:
+
+
+
+			break;
+
+
+
+		case eMsgType::TGA_CHUNK:
+
+
+
+			break;
+
+
+		case eMsgType::ALL:
+
+			for( uInt i = 0; i < m_VecServSideClient.size(); ++i )
+			{
+				if( m_VecServSideClient[ i ]->GetPeerPort() == clientPort )
+					continue;
+
+				int	iResult = send( m_VecServSideClient[ i ]->GetSockRef(), clientMsg.c_str(), ( size_t )strlen( clientMsg.c_str() ), 0 );
+				if( iResult == SOCKET_ERROR )
+					std::cerr << "Send failed with error: " << WSAGetLastError() << '\n';
+			}
+
+			m_Mutex.unlock();
+
+			break;
+
+
+		default:
+
+			std::cerr << "Something in Server::Distribute() borke\n";
+
+			break;
 		}
-
-		m_Mutex.unlock();
 	}
 }
 
@@ -340,7 +375,7 @@ Server::CreateThreads( void )
 {
 	m_ThreadAdmin			= std::thread( &Server::Admin, this );
 	m_ThreadListen			= std::thread( &Server::Listening, this );
-	m_ThreadDistributeMsg	= std::thread( &Server::DistributeMsg, this );
+	m_ThreadDistributeMsg	= std::thread( &Server::Distribute, this );
 
 	m_InitListenThread		= false;
 }
