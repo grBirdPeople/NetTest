@@ -32,20 +32,17 @@ Server::Run( void )
 		switch( m_CurrentServState )
 		{
 		case eServState::INIT:
-
 			Init();
+			break;	// Case end //
 
-			break;
 
 		case eServState::DE_INIT:
-
-
 			DeInit();
-
-			break;
+			break;	// Case end //
 
 
 		case eServState::RUN:
+
 
 			if( m_InitListenThread == true )
 				CreateThreads();
@@ -57,17 +54,23 @@ Server::Run( void )
 			if( m_ThreadDistributeMsg.joinable() )
 				m_ThreadDistributeMsg.join();
 
-			break;
+
+			break;	// Case end //
+
 
 		case eServState::END:
 
-			std::string input;
-			std::cerr << "Server failed. Restart ( 1 ) or terminate ( 2 ): ";
-			std::cin >> input;
 
-			( input == "1" ) ? m_CurrentServState = eServState::INIT : m_ServerIsAlive = false;
+			m_ServerIsAlive = false;
 
-			break;
+			//std::string input;
+			//std::cerr << "Server failed. Restart ( 1 ) or terminate ( 2 ): ";
+			//std::cin >> input;
+
+			//( input == "1" ) ? m_CurrentServState = eServState::INIT : m_ServerIsAlive = false;
+
+
+			break;	// Case end //
 
 		}
 	}
@@ -113,13 +116,16 @@ Server::DeInit( void )
 void
 Server::Admin( void )
 {
+	system( "CLS" );
 	std::cout << "> This is server\n";
 	std::cout << "> List commands: cmd\n\n";
 
+
 	std::string adminInput;
 	std::string command;
-	uInt firstSpaceInString	= 0;
-	uInt currentCase		= 99;
+	uInt		firstSpaceInString;
+	uInt		currentAdminState;
+
 
 	while( m_ServerIsAlive )
 	{
@@ -139,23 +145,25 @@ Server::Admin( void )
 		}
 
 
-		currentCase	=	( command == "cls" )	? eAdminCommands::CLEAR_CONSOLE	:
-						( command == "cmd" )	? eAdminCommands::CMD			:
-						( command == "ls" )		? eAdminCommands::LIST_USERS	:
-						( command == "kick" )	? eAdminCommands::KICK_USER		:
-												eAdminCommands::SIZE;
+		currentAdminState	=	( command == "cls" )		? eAdminCommands::CLEAR_CONSOLE	:
+								( command == "cmd" )		? eAdminCommands::CMD			:
+								( command == "ls" )			? eAdminCommands::LIST_USERS	:
+								( command == "kick" )		? eAdminCommands::KICK_USER		:
+								( command == "terminate" )	? eAdminCommands::TERMINATE		:
+															eAdminCommands::SIZE;
 
 
-		switch( currentCase )
+		switch( currentAdminState )
 		{
 		case eAdminCommands::CLEAR_CONSOLE:
 
 
 			system( "CLS" );
-			std::cout << "> List commands: command\n\n";
+			std::cout << "> This is server\n";
+			std::cout << "> List commands: cmd\n\n";
 
 
-			break;	// Case end
+			break;	// Case end //
 
 
 		case eAdminCommands::CMD:
@@ -164,13 +172,14 @@ Server::Admin( void )
 			std::cout << '\n';
 
 			std::cout << ">\tClear screen:\t\t\t\cls\n";
-			std::cout << ">\tList connected clients:\tls\n";
 			std::cout << ">\tKick client:\t\t\tkick\n";
+			std::cout << ">\tList connected clients:\t\tls\n";
+			std::cout << ">\tTerminate server:\t\tterminate\n";
 
 			std::cout << '\n';
 
 
-			break;	// Case end
+			break;	// Case end //
 
 
 		case eAdminCommands::LIST_USERS:
@@ -186,7 +195,7 @@ Server::Admin( void )
 				std::cout << ">\tPort:\t\t" << i->GetPeerPort() << "\n\n";
 			}
 
-			break;	// Case end
+			break;	// Case end //
 
 
 		case eAdminCommands::KICK_USER:
@@ -241,22 +250,33 @@ Server::Admin( void )
 			}
 
 
-			break;	// Case end
+			break;	// Case end //
 
 
-		case  eAdminCommands::SIZE:
+
+		case eAdminCommands::TERMINATE:
+
+
+			DeInit();
+			m_ServerSockIsAlive	= false;
+
+
+			break;	// Case end //
+
+
+		case eAdminCommands::SIZE:
 
 
 			std::cout << '\n';
 			std::cout << "> Failed to recognize command: " << command << "\n\n";
 
 
-			break;	// Case end
+			break;	// Case end //
 
 
 		default:
 			std::cerr << "\nSomething in ServSideClient::ReceiveFromClientSide() borke\n";
-			break;	// Case end
+			break;	// Case end //
 		}
 
 
@@ -405,21 +425,21 @@ Server::Distribute( void )
 			}
 
 
-			break;	// Case end
+			break;	// Case end //
 
 
 		case eMsgType::TGA_FILE:
 
 
 
-			break;	// Case end
+			break;	// Case end //
 
 
 		case eMsgType::TGA_CHUNK:
 
 
 
-			break;	// Case end
+			break;	// Case end //
 
 
 		case eMsgType::ALL:
@@ -436,7 +456,7 @@ Server::Distribute( void )
 			}
 
 
-			break;	// Case end
+			break;	// Case end //
 
 
 		default:

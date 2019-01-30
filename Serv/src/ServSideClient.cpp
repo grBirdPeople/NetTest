@@ -132,14 +132,14 @@ ServSideClient::ReceiveFromClientSide( void )
 				m_Server->m_QueueMsg.push( this );
 			}
 
-			break;	// Case end
+			break;	// Case end //
 
 
 		case eMsgType::TGA_FILE:
 
 
 
-			break;	// Case end
+			break;	// Case end //
 
 
 
@@ -147,7 +147,7 @@ ServSideClient::ReceiveFromClientSide( void )
 
 
 
-			break;	// Case end
+			break;	// Case end //
 
 
 		case eMsgType::ALL:
@@ -164,13 +164,13 @@ ServSideClient::ReceiveFromClientSide( void )
 				m_Server->m_QueueMsg.push( this );
 			}
 
-			break;	// Case end
+			break;	// Case end //
 
 
 
 		default:
 			std::cerr << "\Something in ServSideClient::ReceiveFromClientSide() borke\n";
-			break;	// Case end
+			break;	// Case end //
 		}
 	}
 }
