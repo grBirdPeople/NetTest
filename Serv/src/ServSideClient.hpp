@@ -19,15 +19,16 @@ public:
 
 	//////////////////////////////////////////////////
 
-	SOCKET&			GetSockRef		( void )					{ return *m_ClientSock; }
-	uInt			GetPeerPort		( void )					{ return m_PeerPort; }
-	uInt			GetMsgType		( void )					{ return m_MsgType; }
-	std::string&	GetPeerIP		( void )					{ return m_PeerIP; }
-	std::string&	GetMsg			( void )					{ return m_Msg; }
-	std::string&	GetName			( void )					{ return m_UserName; }
-	std::string&	GetWhisperName	( void )					{ return m_whisperAtUserName; }
+	SOCKET&			GetSockRef		( void )						{ return *m_ClientSock; }
+	uInt			GetPeerPort		( void )						{ return m_PeerPort; }
+	uInt			GetMsgType		( void )						{ return m_MsgType; }
+	std::string&	GetPeerIP		( void )						{ return m_PeerIP; }
+	std::string&	GetMsg			( void )						{ return m_Msg; }
+	std::string&	GetName			( void )						{ return m_UserName; }
+	std::string&	GetWhisperName	( void )						{ return m_whisperAtUserName; }
 
-	void			SetMsg			( const std::string& msg )	{ m_Msg = msg; }
+	void			SetMsg			( const std::string& msg )		{ m_Msg = msg; }
+	void			SetUserName		( const std::string& userName )	{ m_UserName = userName; }
 
 	//////////////////////////////////////////////////
 
