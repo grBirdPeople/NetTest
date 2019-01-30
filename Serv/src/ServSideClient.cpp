@@ -129,7 +129,7 @@ ServSideClient::ReceiveFromClientSide( void )
 
 
 				std::unique_lock< std::mutex > uLock( m_Mutex );
-				m_Server->m_QueueMsg.push( this );
+				m_Server->PushJob( *this );
 			}
 
 			break;	// Case end //
@@ -161,11 +161,11 @@ ServSideClient::ReceiveFromClientSide( void )
 					m_Msg.push_back( m_arrRecvMsg[ i ] );
 
 				std::unique_lock< std::mutex > uLock( m_Mutex );
-				m_Server->m_QueueMsg.push( this );
+				m_Server->PushJob( *this );
 			}
 
-			break;	// Case end //
 
+			break;	// Case end //
 
 
 		default:

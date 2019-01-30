@@ -11,10 +11,6 @@ class Server
 {
 public:
 
-	friend class ServSideClient;
-
-	//////////////////////////////////////////////////
-
 	enum eServState
 	{
 		INIT = 1,
@@ -46,6 +42,8 @@ public:
 
 	void	Run				( void );
 
+	void	PushJob			( ServSideClient& job );
+
 	//////////////////////////////////////////////////
 
 private:
@@ -54,10 +52,12 @@ private:
 	void	DeInit			( void );
 
 	void	Admin			( void );
-	void	Listening		( void );
+	void	Listen			( void );
 	void	Distribute		( void );
 
 	void	CreateThreads	( void );
+
+	void	PushClient		( ServSideClient& client );
 
 	//////////////////////////////////////////////////
 
@@ -65,7 +65,7 @@ private:
 
 	std::vector< ServSideClient* >	m_VecServSideClient;
 
-	std::queue< ServSideClient* >	m_QueueMsg;		// No ownage // Don't delete when pop, only nullptr
+	std::queue< ServSideClient* >	m_QueueJob;		// No ownage // Don't delete when pop, only nullptr
 
 	std::thread						m_ThreadAdmin;
 	std::thread						m_ThreadListen;

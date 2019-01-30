@@ -78,6 +78,16 @@ Server::Run( void )
 
 
 //////////////////////////////////////////////////
+//	PushJob
+//////////////////////////////////////////////////
+void
+Server::PushJob( ServSideClient& job )
+{
+	m_QueueJob.push( &job );
+}
+
+
+//////////////////////////////////////////////////
 //	Init
 //////////////////////////////////////////////////
 void
@@ -290,7 +300,7 @@ Server::Admin( void )
 //////////////////////////////////////////////////
 //	Listening
 //////////////////////////////////////////////////
-void Server::Listening( void )
+void Server::Listen( void )
 {
 	m_ServerSockIsAlive	= true;
 	SOCKET* listenSock	= new SOCKET;
@@ -388,15 +398,15 @@ Server::Distribute( void )
 	{
 		m_Mutex.lock();
 
-		while( m_QueueMsg.empty() )
+		while( m_QueueJob.empty() )
 			Sleep( 1 );
 
-		if( m_QueueMsg.empty() )
+		if( m_QueueJob.empty() )
 			continue;
 
 
-		pClient	= m_QueueMsg.front();
-		m_QueueMsg.pop();
+		pClient	= m_QueueJob.front();
+		m_QueueJob.pop();
 
 		clientMsgType	= pClient->GetMsgType();
 		clientPort		= pClient->GetPeerPort();
@@ -466,6 +476,7 @@ Server::Distribute( void )
 
 
 		m_Mutex.unlock();
+		pClient = nullptr;
 	}
 }
 
@@ -477,9 +488,19 @@ void
 Server::CreateThreads( void )
 {
 	m_ThreadAdmin			= std::thread( &Server::Admin, this );
-	m_ThreadListen			= std::thread( &Server::Listening, this );
+	m_ThreadListen			= std::thread( &Server::Listen, this );
 	m_ThreadDistributeMsg	= std::thread( &Server::Distribute, this );
 
 	m_InitListenThread		= false;
+}
+
+
+//////////////////////////////////////////////////
+//	PushClient
+//////////////////////////////////////////////////
+void
+Server::PushClient( ServSideClient& client )
+{
+	m_VecServSideClient.push_back( &client );
 }
 
