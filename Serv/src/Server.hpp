@@ -18,15 +18,19 @@ public:
 	enum eServState
 	{
 		INIT = 1,
+		DE_INIT,
 		RUN,
 		END
 	};
 
 	enum eAdminCommands
 	{
-		COMMAND = 0,
+		CLEAR_CONSOLE = 0,
+		CMD,
+		KICK_USER,
 		LIST_USERS,
-		KICK,
+		RESTART,
+		TERMINATE,
 		SIZE
 	};
 
@@ -47,10 +51,11 @@ public:
 private:
 
 	void	Init			( void );
+	void	DeInit			( void );
 
 	void	Admin			( void );
 	void	Listening		( void );
-	void	Distribute	( void );
+	void	Distribute		( void );
 
 	void	CreateThreads	( void );
 

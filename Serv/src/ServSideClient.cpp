@@ -70,10 +70,10 @@ ServSideClient::ReceiveFromClientSide( void )
 	{
 		int recvSize = recv( *m_ClientSock, m_arrRecvMsg, MAX_CHARS, 0 );
 
-		m_MsgType	= ( m_arrRecvMsg[ 0 ] == '1' ) ? eMsgType::WHISPER
-					: ( m_arrRecvMsg[ 0 ] == '2' ) ? eMsgType::TGA_FILE
-					: ( m_arrRecvMsg[ 0 ] == '3' ) ? eMsgType::TGA_CHUNK
-					: eMsgType::ALL;
+		m_MsgType =	( m_arrRecvMsg[ 0 ] == '1' )	? eMsgType::WHISPER		:
+					( m_arrRecvMsg[ 0 ] == '2' )	? eMsgType::TGA_FILE	:
+					( m_arrRecvMsg[ 0 ] == '3' )	? eMsgType::TGA_CHUNK	:
+													eMsgType::ALL;
 
 
 		switch( m_MsgType )
@@ -81,14 +81,65 @@ ServSideClient::ReceiveFromClientSide( void )
 		case eMsgType::WHISPER:
 
 
+			if( recvSize > 0 )
+			{
+				uInt		whisperUserStartIndex;
+				uInt		whisperMsgStartIndex;
 
-			break;
+
+				// Find whisper at username start index
+				for( uInt i = 1; i < ( uInt )recvSize; ++i )
+				{
+					if( m_arrRecvMsg[ i ] != ' ' )
+					{
+						whisperUserStartIndex = i;
+						break;
+					}
+				}
+
+
+				// Find whisper at username
+				m_whisperAtUserName.clear();
+
+				for( uInt i = whisperUserStartIndex; i < ( uInt )recvSize; ++i )
+				{
+					if( m_arrRecvMsg[ i ] == ' ' )
+					{
+						for( uInt j = i; j < ( uInt )recvSize; ++j )
+						{
+							if( m_arrRecvMsg[ j ] != ' ' )
+							{
+								whisperMsgStartIndex = j;
+								break;
+							}
+						}
+
+						break;
+					}
+
+					m_whisperAtUserName.push_back( m_arrRecvMsg[ i ] );
+				}
+
+
+				// Fiund actual msg
+				m_Msg.clear();
+
+				for( uInt i = whisperMsgStartIndex; i < ( uInt )recvSize; ++i )
+					m_Msg.push_back( m_arrRecvMsg[ i ] );
+
+
+				std::unique_lock< std::mutex > uLock( m_Mutex );
+				m_Server->m_QueueMsg.push( this );
+			}
+
+			break;	// Case end //
+
 
 		case eMsgType::TGA_FILE:
 
 
 
-			break;
+			break;	// Case end //
 
 
 
@@ -96,30 +147,30 @@ ServSideClient::ReceiveFromClientSide( void )
 
 
 
-			break;
+			break;	// Case end //
 
 
 		case eMsgType::ALL:
 
+
 			if( recvSize > 0 )
 			{
-				std::unique_lock< std::mutex > uLock( m_Mutex );
-
 				m_Msg.clear();
+
 				for( uInt i = 0; i < ( uInt )recvSize; ++i )
 					m_Msg.push_back( m_arrRecvMsg[ i ] );
 
+				std::unique_lock< std::mutex > uLock( m_Mutex );
 				m_Server->m_QueueMsg.push( this );
 			}
 
-			break;
+			break;	// Case end //
+
 
 
 		default:
-
-			std::cerr << "Something in ServSideClient::ReceiveFromClientSide() borke\n";
-
-			break;
+			std::cerr << "\Something in ServSideClient::ReceiveFromClientSide() borke\n";
+			break;	// Case end //
 		}
 	}
 }

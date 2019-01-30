@@ -32,12 +32,17 @@ Server::Run( void )
 		switch( m_CurrentServState )
 		{
 		case eServState::INIT:
-
 			Init();
+			break;	// Case end //
 
-			break;
+
+		case eServState::DE_INIT:
+			DeInit();
+			break;	// Case end //
+
 
 		case eServState::RUN:
+
 
 			if( m_InitListenThread == true )
 				CreateThreads();
@@ -49,17 +54,23 @@ Server::Run( void )
 			if( m_ThreadDistributeMsg.joinable() )
 				m_ThreadDistributeMsg.join();
 
-			break;
+
+			break;	// Case end //
+
 
 		case eServState::END:
 
-			std::string input;
-			std::cerr << "Server failed. Retry ( 1 ) or terminate ( 2 ): ";
-			std::cin >> input;
 
-			( input == "1" ) ? m_CurrentServState = eServState::INIT : m_ServerIsAlive = false;
+			m_ServerIsAlive = false;
 
-			break;
+			//std::string input;
+			//std::cerr << "Server failed. Restart ( 1 ) or terminate ( 2 ): ";
+			//std::cin >> input;
+
+			//( input == "1" ) ? m_CurrentServState = eServState::INIT : m_ServerIsAlive = false;
+
+
+			break;	// Case end //
 
 		}
 	}
@@ -83,8 +94,19 @@ Server::Init( void )
 	else
 	{
 		m_InitListenThread	= true;
-		m_CurrentServState		= eServState::RUN;
+		m_CurrentServState	= eServState::RUN;
 	}
+}
+
+
+//////////////////////////////////////////////////
+//	DeInit
+//////////////////////////////////////////////////
+void
+Server::DeInit( void )
+{
+	for( auto& i : m_VecServSideClient )
+		AUTO_DEL( i );
 }
 
 
@@ -94,13 +116,16 @@ Server::Init( void )
 void
 Server::Admin( void )
 {
+	system( "CLS" );
 	std::cout << "> This is server\n";
-	std::cout << "* List commands: command\n\n";
+	std::cout << "> List commands: cmd\n\n";
+
 
 	std::string adminInput;
 	std::string command;
-	uInt firstSpaceInString	= 0;
-	uInt currentCase		= 99;
+	uInt		firstSpaceInString;
+	uInt		currentAdminState;
+
 
 	while( m_ServerIsAlive )
 	{
@@ -120,46 +145,72 @@ Server::Admin( void )
 		}
 
 
-		currentCase	= ( command == "command" ) ? eAdminCommands::COMMAND
-					: ( command == "ls" ) ? eAdminCommands::LIST_USERS
-					: ( command == "kick" ) ? eAdminCommands::KICK
-					: eAdminCommands::SIZE;
+		currentAdminState	=	( command == "cls" )		? eAdminCommands::CLEAR_CONSOLE	:
+								( command == "cmd" )		? eAdminCommands::CMD			:
+								( command == "ls" )			? eAdminCommands::LIST_USERS	:
+								( command == "kick" )		? eAdminCommands::KICK_USER		:
+								( command == "terminate" )	? eAdminCommands::TERMINATE		:
+															eAdminCommands::SIZE;
 
 
-		switch( currentCase )
+		switch( currentAdminState )
 		{
-		case eAdminCommands::COMMAND:
+		case eAdminCommands::CLEAR_CONSOLE:
 
-			std::cout << "\n> Available commands:\n";
-			std::cout << "* List connected clients:\tls\n";
-			std::cout << "* Kick client:\t\t\tkick\n\n";
 
-			break;
+			system( "CLS" );
+			std::cout << "> This is server\n";
+			std::cout << "> List commands: cmd\n\n";
+
+
+			break;	// Case end //
+
+
+		case eAdminCommands::CMD:
+
+
+			std::cout << '\n';
+
+			std::cout << ">\tClear screen:\t\t\t\cls\n";
+			std::cout << ">\tKick client:\t\t\tkick\n";
+			std::cout << ">\tList connected clients:\t\tls\n";
+			std::cout << ">\tTerminate server:\t\tterminate\n";
+
+			std::cout << '\n';
+
+
+			break;	// Case end //
+
 
 		case eAdminCommands::LIST_USERS:
 
+
+			std::cout << '\n';
 			std::cout << "> Number of clients connected: " << m_VecServSideClient.size() << "\n\n";
 
 			for( auto& i : m_VecServSideClient )
 			{
-				std::cout << "> User name:\t" << i->GetName() << '\n';
-				std::cout << "> IP:\t\t" << i->GetPeerIP() << '\n';
-				std::cout << "> Port:\t\t" << i->GetPeerPort() << "\n\n";
+				std::cout << ">\tUser name:\t" << i->GetName() << '\n';
+				std::cout << ">\tIP:\t\t" << i->GetPeerIP() << '\n';
+				std::cout << ">\tPort:\t\t" << i->GetPeerPort() << "\n\n";
 			}
 
-			break;
+			break;	// Case end //
 
-		case eAdminCommands::KICK:
+
+		case eAdminCommands::KICK_USER:
+
 
 			if( m_VecServSideClient.size() < 0 )
 			{
+				std::cout << '\n';
 				std::cout << "No clients connected\n\n";
 			}
 			else
 			{
-				std::string user;
-				uInt kickIndex = 0;
-				bool userFound = false;
+				std::string	user;
+				uInt		kickIndex = 0;
+				bool		userFound = false;
 
 
 				for( uInt i = ( firstSpaceInString + 1 ); i < adminInput.size(); ++i )
@@ -179,29 +230,53 @@ Server::Admin( void )
 
 				if( userFound )
 				{
-					std::cout << "> User '" << user << "' was kicked and you feel better :)\n\n";
+					std::cout << '\n';
+					std::cout << "> User '" << user << "' was kicked :)\n\n";
 
-					std::string kickMsg = "> You have been kicked from the server :)";
+					std::string kickMsg = "You where kicked from the server :)";
 
 					int	iResult = send( m_VecServSideClient[ kickIndex ]->GetSockRef(), kickMsg.c_str(), ( size_t )strlen( kickMsg.c_str() ), 0 );
 					if( iResult == SOCKET_ERROR )
 						std::cerr << "Kick send failed with error: " << WSAGetLastError() << '\n';
 
-					m_VecServSideClient.erase( m_VecServSideClient.begin() + kickIndex );
+					//delete m_VecServSideClient[ kickIndex ];
+					m_VecServSideClient.erase( m_VecServSideClient.begin() + ( kickIndex + 1 ) );
 				}
 				else
 				{
+					std::cout << '\n';
 					std::cout << "> No user by name '" << user << "' is connected to the server\n\n";
 				}
 			}
 
-			break;
 
-		case  eAdminCommands::SIZE:
+			break;	// Case end //
 
+
+
+		case eAdminCommands::TERMINATE:
+
+
+			DeInit();
+			m_ServerSockIsAlive	= false;
+
+
+			break;	// Case end //
+
+
+		case eAdminCommands::SIZE:
+
+
+			std::cout << '\n';
 			std::cout << "> Failed to recognize command: " << command << "\n\n";
 
-			break;
+
+			break;	// Case end //
+
+
+		default:
+			std::cerr << "\nSomething in ServSideClient::ReceiveFromClientSide() borke\n";
+			break;	// Case end //
 		}
 
 
@@ -224,7 +299,7 @@ void Server::Listening( void )
     *listenSock = socket( AF_INET, SOCK_STREAM, IPPROTO_TCP );
 	if( *listenSock == INVALID_SOCKET )
 	{
-		std::cerr << "Listening socket failed with error: " << WSAGetLastError() << '\n';
+		std::cerr << "\nListening socket failed with error: " << WSAGetLastError() << '\n';
 		m_ServerSockIsAlive	= false;
 	}
 	//else
@@ -240,10 +315,10 @@ void Server::Listening( void )
 	int iResult = bind( *listenSock, ( SOCKADDR* )& serverInfo, sizeof( serverInfo ) );
 	if( iResult == SOCKET_ERROR )
 	{
-		std::cerr << "Bind function failed with error. " << WSAGetLastError() << '\n';
+		std::cerr << "\nBind function failed with error. " << WSAGetLastError() << '\n';
 		iResult = closesocket( *listenSock );
 		if ( iResult == SOCKET_ERROR )
-			std::cerr << " Closesocket function failed with error: " << WSAGetLastError() << '\n';
+			std::cerr << "\nClosesocket function failed with error: " << WSAGetLastError() << '\n';
 
 		m_ServerSockIsAlive	= false;
 	}
@@ -253,7 +328,7 @@ void Server::Listening( void )
 	{
 		if( listen( *listenSock, SOMAXCONN ) == SOCKET_ERROR )
 		{
-			std::cerr << "Listen function failed with error: " << WSAGetLastError() << '\n';
+			std::cerr << "\nListen function failed with error: " << WSAGetLastError() << '\n';
 			m_ServerSockIsAlive = false;
 		}
 
@@ -267,7 +342,7 @@ void Server::Listening( void )
 		*clientSock = accept( *listenSock, NULL, NULL );
 		if ( *clientSock == INVALID_SOCKET)
 		{
-			std::cerr << "Accept failed with error: " << WSAGetLastError() << '\n';
+			std::cerr << "\nAccept failed with error: " << WSAGetLastError() << '\n';
 			closesocket( *listenSock );
 			m_ServerSockIsAlive = false;
 		}
@@ -275,7 +350,7 @@ void Server::Listening( void )
 		{
 			//std::cout << "Clients connected: " << m_VecServSideClient.size() + 1 << '\n';
 
-			m_VecServSideClient.push_back( new ServSideClient( *clientSock, "No name set", this ) );
+			m_VecServSideClient.push_back( new ServSideClient( *clientSock, "NoName", this ) );
 			clientSock = nullptr;
 		}
 	}
@@ -297,6 +372,18 @@ void Server::Listening( void )
 void
 Server::Distribute( void )
 {
+	ServSideClient* pClient = nullptr;	// No ownage // Only ptr are copied and used to fecth client info
+
+	uInt clientMsgType;
+	uInt clientPort;
+
+	int	iResult;
+
+	std::string	clientUserName;
+	std::string clientMsg;
+	std::string	whisperAtUserName;
+
+
 	while( m_ServerSockIsAlive )
 	{
 		m_Mutex.lock();
@@ -308,13 +395,13 @@ Server::Distribute( void )
 			continue;
 
 
-		ServSideClient* client		= m_QueueMsg.front();
+		pClient	= m_QueueMsg.front();
 		m_QueueMsg.pop();
 
-		uInt clientMsgType			= client->GetMsgType();
-		uInt clientPort				= client->GetPeerPort();
-		std::string	clientUserName	= client->GetName();
-		std::string clientMsg		= client->GetMsg();
+		clientMsgType	= pClient->GetMsgType();
+		clientPort		= pClient->GetPeerPort();
+		clientUserName	= pClient->GetName();
+		clientMsg		= pClient->GetMsg();
 
 
 		switch( clientMsgType )
@@ -322,47 +409,63 @@ Server::Distribute( void )
 		case eMsgType::WHISPER:
 
 
+			whisperAtUserName.clear();
+			whisperAtUserName = pClient->GetWhisperName();
 
-			break;
+			for( uInt i = 0; i < m_VecServSideClient.size(); ++i )
+			{
+				if( m_VecServSideClient[ i ]->GetName() == whisperAtUserName )
+				{
+					iResult = send( m_VecServSideClient[ i ]->GetSockRef(), clientMsg.c_str(), ( size_t )strlen( clientMsg.c_str() ), 0 );
+					if( iResult == SOCKET_ERROR )
+						std::cerr << "\nSend failed with error: " << WSAGetLastError() << '\n';
+
+					break;
+				}
+			}
+
+
+			break;	// Case end //
+
 
 		case eMsgType::TGA_FILE:
 
 
 
-			break;
-
+			break;	// Case end //
 
 
 		case eMsgType::TGA_CHUNK:
 
 
 
-			break;
+			break;	// Case end //
 
 
 		case eMsgType::ALL:
+
 
 			for( uInt i = 0; i < m_VecServSideClient.size(); ++i )
 			{
 				if( m_VecServSideClient[ i ]->GetPeerPort() == clientPort )
 					continue;
 
-				int	iResult = send( m_VecServSideClient[ i ]->GetSockRef(), clientMsg.c_str(), ( size_t )strlen( clientMsg.c_str() ), 0 );
+				iResult = send( m_VecServSideClient[ i ]->GetSockRef(), clientMsg.c_str(), ( size_t )strlen( clientMsg.c_str() ), 0 );
 				if( iResult == SOCKET_ERROR )
-					std::cerr << "Send failed with error: " << WSAGetLastError() << '\n';
+					std::cerr << "\nSend failed with error: " << WSAGetLastError() << '\n';
 			}
 
-			m_Mutex.unlock();
 
-			break;
+			break;	// Case end //
 
 
 		default:
-
-			std::cerr << "Something in Server::Distribute() borke\n";
-
-			break;
+			std::cerr << "\nSomething in Server::Distribute() borke\n";
+			break;	// Case end
 		}
+
+
+		m_Mutex.unlock();
 	}
 }
 

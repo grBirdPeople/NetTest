@@ -25,6 +25,7 @@ public:
 	std::string&	GetPeerIP		( void )					{ return m_PeerIP; }
 	std::string&	GetMsg			( void )					{ return m_Msg; }
 	std::string&	GetName			( void )					{ return m_UserName; }
+	std::string&	GetWhisperName	( void )					{ return m_whisperAtUserName; }
 
 	void			SetMsg			( const std::string& msg )	{ m_Msg = msg; }
 
@@ -45,6 +46,8 @@ private:
 	std::string	m_Msg;
 	std::string	m_UserName;
 	std::string	m_PeerIP;
+
+	std::string	m_whisperAtUserName;
 
 	std::thread	m_ThreadReceive;
 
