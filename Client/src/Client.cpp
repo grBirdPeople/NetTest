@@ -115,12 +115,17 @@ Client::Init( void )
 void
 Client::ServerConnect( void )
 {
+	char arrRecvMsg[ MAX_CHARS ];
+	std::string msg;
+	int iResult;
+	int recvSize;
+
 	sockaddr_in clientService;
     clientService.sin_family		= AF_INET;
     clientService.sin_addr.s_addr	= inet_addr( m_ServerIP );
     clientService.sin_port			= htons( m_ServerPort );
 
-	int iResult = connect( *m_ClientSock, (SOCKADDR *) & clientService, sizeof (clientService) );
+	iResult = connect( *m_ClientSock, ( SOCKADDR* ) & clientService, sizeof( clientService ) );
 	if (iResult == SOCKET_ERROR)
 	{
 		std::cerr << "Connect function failed with error: " << WSAGetLastError() << '\n';
@@ -133,6 +138,31 @@ Client::ServerConnect( void )
 	}
 	else
 	{
+
+		//recvSize = recv( *m_ClientSock, arrRecvMsg, MAX_CHARS, 0 );
+
+		//msg.clear();
+		//for ( uInt i = 0; i < ( uInt )recvSize; ++i )
+		//	msg.push_back( arrRecvMsg[ i ] );
+
+
+		//if( msg[ 0 ] == '9' )
+		//{
+		//	iResult = send(*m_ClientSock, msg.c_str(), strlen(msg.c_str()), 0);
+		//	if( iResult == SOCKET_ERROR )
+		//		std::cerr << "\nSend failed with error: " << WSAGetLastError() << '\n';
+		//}
+
+
+		//recvSize = recv( *m_ClientSock, arrRecvMsg, MAX_CHARS, 0 );
+
+		//msg.clear();
+		//for ( uInt i = 0; i < ( uInt )recvSize; ++i )
+		//	msg.push_back( arrRecvMsg[ i ] );
+
+		//std::cout << "> " << msg << "\n\n";
+
+
 		m_InitSendRecvThreads	= true;
 		m_CurrentClientState	= eState::RUN;
 	}

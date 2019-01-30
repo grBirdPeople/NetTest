@@ -495,7 +495,7 @@ Server::CreateThreads( void )
 {
 	m_ThreadAdmin			= std::thread( &Server::Admin, this );
 	m_ThreadListen			= std::thread( &Server::Listen, this );
-	m_HandShake				= std::thread( &Server::HandShake, this );
+	//m_HandShake				= std::thread( &Server::HandShake, this );
 	m_ThreadDistributeMsg	= std::thread( &Server::Distribute, this );
 
 	m_InitListenThread		= false;
@@ -511,8 +511,6 @@ Server::HandShake( void )
 	char			m_arrRecvOkMsg[ MAX_CHARS ];
 
 	ServSideClient*	pClient = nullptr;	// No ownage // Only ptr are copied and used to fecth client info
-
-	uInt			clientPort;
 
 	int				iResult;
 
