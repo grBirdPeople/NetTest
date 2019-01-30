@@ -54,7 +54,7 @@ Server::Run( void )
 		case eServState::END:
 
 			std::string input;
-			std::cerr << "Server failed. Retry ( 1 ) or terminate ( 2 ): ";
+			std::cerr << "Server failed. Restart ( 1 ) or terminate ( 2 ): ";
 			std::cin >> input;
 
 			( input == "1" ) ? m_CurrentServState = eServState::INIT : m_ServerIsAlive = false;
@@ -122,7 +122,7 @@ Server::Admin( void )
 
 		currentCase	= ( command == "command" ) ? eAdminCommands::COMMAND
 					: ( command == "ls" ) ? eAdminCommands::LIST_USERS
-					: ( command == "kick" ) ? eAdminCommands::KICK
+					: ( command == "kick" ) ? eAdminCommands::KICK_USER
 					: eAdminCommands::SIZE;
 
 
@@ -149,7 +149,7 @@ Server::Admin( void )
 
 			break;
 
-		case eAdminCommands::KICK:
+		case eAdminCommands::KICK_USER:
 
 			if( m_VecServSideClient.size() < 0 )
 			{
@@ -297,7 +297,7 @@ void Server::Listening( void )
 void
 Server::Distribute( void )
 {
-	ServSideClient* pClient = nullptr;	// No wonage // Only ptr are copied and used temp
+	ServSideClient* pClient = nullptr;	// No ownage // Only ptr are copied and used to fecth client info
 
 	uInt clientMsgType;
 	uInt clientPort;

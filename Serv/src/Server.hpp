@@ -26,7 +26,9 @@ public:
 	{
 		COMMAND = 0,
 		LIST_USERS,
-		KICK,
+		KICK_USER,
+		RESTART,
+		TERMINATE,
 		SIZE
 	};
 
