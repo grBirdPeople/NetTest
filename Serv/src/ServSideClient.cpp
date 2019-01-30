@@ -80,7 +80,56 @@ ServSideClient::ReceiveFromClientSide( void )
 		{
 		case eMsgType::WHISPER:
 
+			if( recvSize > 0 )
+			{
+				uInt		whisperUserStartIndex;
+				uInt		whisperMsgStartIndex;
 
+
+				// Find whisper at username start index
+				for( uInt i = 1; i < ( uInt )recvSize; ++i )
+				{
+					if( m_arrRecvMsg[ i ] != ' ' )
+					{
+						whisperUserStartIndex = i;
+						break;
+					}
+				}
+
+
+				// Find whisper at username
+				m_whisperAtUserName.clear();
+
+				for( uInt i = whisperUserStartIndex; i < ( uInt )recvSize; ++i )
+				{
+					if( m_arrRecvMsg[ i ] == ' ' )
+					{
+						for( uInt j = i; j < ( uInt )recvSize; ++j )
+						{
+							if( m_arrRecvMsg[ j ] != ' ' )
+							{
+								whisperMsgStartIndex = j;
+								break;
+							}
+						}
+
+						break;
+					}
+
+					m_whisperAtUserName.push_back( m_arrRecvMsg[ i ] );
+				}
+
+
+				// Fiund actual msg
+				m_Msg.clear();
+
+				for( uInt i = whisperMsgStartIndex; i < ( uInt )recvSize; ++i )
+					m_Msg.push_back( m_arrRecvMsg[ i ] );
+
+
+				std::unique_lock< std::mutex > uLock( m_Mutex );
+				m_Server->m_QueueMsg.push( this );
+			}
 
 			break;
 
@@ -103,12 +152,12 @@ ServSideClient::ReceiveFromClientSide( void )
 
 			if( recvSize > 0 )
 			{
-				std::unique_lock< std::mutex > uLock( m_Mutex );
-
 				m_Msg.clear();
+
 				for( uInt i = 0; i < ( uInt )recvSize; ++i )
 					m_Msg.push_back( m_arrRecvMsg[ i ] );
 
+				std::unique_lock< std::mutex > uLock( m_Mutex );
 				m_Server->m_QueueMsg.push( this );
 			}
 

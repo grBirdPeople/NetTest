@@ -275,7 +275,7 @@ void Server::Listening( void )
 		{
 			//std::cout << "Clients connected: " << m_VecServSideClient.size() + 1 << '\n';
 
-			m_VecServSideClient.push_back( new ServSideClient( *clientSock, "No name set", this ) );
+			m_VecServSideClient.push_back( new ServSideClient( *clientSock, "NoNameSet", this ) );
 			clientSock = nullptr;
 		}
 	}
@@ -297,6 +297,18 @@ void Server::Listening( void )
 void
 Server::Distribute( void )
 {
+	ServSideClient* pClient = nullptr;	// No wonage // Only ptr are copied and used temp
+
+	uInt clientMsgType;
+	uInt clientPort;
+
+	int	iResult;
+
+	std::string	clientUserName;
+	std::string clientMsg;
+	std::string	whisperAtUserName;
+
+
 	while( m_ServerSockIsAlive )
 	{
 		m_Mutex.lock();
@@ -308,13 +320,13 @@ Server::Distribute( void )
 			continue;
 
 
-		ServSideClient* client		= m_QueueMsg.front();
+		pClient	= m_QueueMsg.front();
 		m_QueueMsg.pop();
 
-		uInt clientMsgType			= client->GetMsgType();
-		uInt clientPort				= client->GetPeerPort();
-		std::string	clientUserName	= client->GetName();
-		std::string clientMsg		= client->GetMsg();
+		clientMsgType	= pClient->GetMsgType();
+		clientPort		= pClient->GetPeerPort();
+		clientUserName	= pClient->GetName();
+		clientMsg		= pClient->GetMsg();
 
 
 		switch( clientMsgType )
@@ -322,47 +334,63 @@ Server::Distribute( void )
 		case eMsgType::WHISPER:
 
 
+			whisperAtUserName.clear();
+			whisperAtUserName = pClient->GetWhisperName();
 
-			break;
+			for( uInt i = 0; i < m_VecServSideClient.size(); ++i )
+			{
+				if( m_VecServSideClient[ i ]->GetName() == whisperAtUserName )
+				{
+					iResult = send( m_VecServSideClient[ i ]->GetSockRef(), clientMsg.c_str(), ( size_t )strlen( clientMsg.c_str() ), 0 );
+					if( iResult == SOCKET_ERROR )
+						std::cerr << "Send failed with error: " << WSAGetLastError() << '\n';
+
+					break;
+				}
+			}
+
+
+			break;	// Case end
+
 
 		case eMsgType::TGA_FILE:
 
 
 
-			break;
-
+			break;	// Case end
 
 
 		case eMsgType::TGA_CHUNK:
 
 
 
-			break;
+			break;	// Case end
 
 
 		case eMsgType::ALL:
+
 
 			for( uInt i = 0; i < m_VecServSideClient.size(); ++i )
 			{
 				if( m_VecServSideClient[ i ]->GetPeerPort() == clientPort )
 					continue;
 
-				int	iResult = send( m_VecServSideClient[ i ]->GetSockRef(), clientMsg.c_str(), ( size_t )strlen( clientMsg.c_str() ), 0 );
+				iResult = send( m_VecServSideClient[ i ]->GetSockRef(), clientMsg.c_str(), ( size_t )strlen( clientMsg.c_str() ), 0 );
 				if( iResult == SOCKET_ERROR )
 					std::cerr << "Send failed with error: " << WSAGetLastError() << '\n';
 			}
 
-			m_Mutex.unlock();
 
-			break;
+			break;	// Case end
 
 
 		default:
-
 			std::cerr << "Something in Server::Distribute() borke\n";
-
-			break;
+			break;	// Case end
 		}
+
+
+		m_Mutex.unlock();
 	}
 }
 
