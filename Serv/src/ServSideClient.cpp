@@ -175,7 +175,7 @@ ServSideClient::RecvTCP( void )
 				}
 				else if( m_arrRecvMsg[ whisperMsgStartIndex ] == '/' )
 				{
-					( m_arrRecvMsg[ whisperMsgStartIndex + 1 ] == '/' ) ? HandleTgaChunk() : HandleTgaFile();
+					( m_arrRecvMsg[ whisperMsgStartIndex + 1 ] == '/' ) ? HandleTgaChunk() : HandleTgaFile( recvSize );
 				}
 			}
 
@@ -190,7 +190,7 @@ ServSideClient::RecvTCP( void )
 			{
 				// Temp solution // later fix
 				if( m_arrRecvMsg[ 0 ] == '2' )
-					HandleTgaFile();
+					HandleTgaFile( ( uInt )recvSize );
 				else if( m_arrRecvMsg[ 1 ] == '3' )
 					HandleTgaChunk();
 				else
