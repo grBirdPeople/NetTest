@@ -2,7 +2,8 @@
 
 #include	"Common.hpp"
 
-#define		MAX_CHARS 128
+#define		MAX_CHARS		128
+#define		MAX_MTU_SIZE	1024
 
 
 //////////////////////////////////////////////////

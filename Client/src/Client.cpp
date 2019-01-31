@@ -282,7 +282,7 @@ Client::Send( void )
 						int imageSize=0;
 						for (size_t i = 0; i < size; i++)
 						{
-							if (size > 1440 * i)
+							if (size > 1024 * i)
 								imageSize++;
 							else
 								break;
@@ -291,80 +291,76 @@ Client::Send( void )
 
 						std::cout << infomsg << "\n";
 
-							// Send header file
+						// Send header file
 						int	iResult = send(*m_ClientSock, infomsg.c_str(), strlen(infomsg.c_str()), 0);
 						if (iResult == SOCKET_ERROR)
 							std::cerr << "Send failed with error: " << WSAGetLastError() << '\n';
 
 
-							// Send image code chunks (assuming image size is 256x256)
-						for (int i = 0; i < imageSize; i++)
+						// Send image code chunks (assuming image size is 256x256)
+						//static const unsigned int MAX_MTU_SIZE = 1024;
+						int orginalWidth = 256;
+						int chunkHeight = 256;
+						int chunkWidth = 256;
+						char* pByteArray = new char[MAX_MTU_SIZE];
+						int writeIndex = 0;
+						int xOffset = 0;
+						int yOffset = 0;
+						for (int y = 0; y < chunkHeight; ++y)
 						{
-							static const unsigned int MAX_MTU_SIZE = 1024;
-							int orginalWidth = 256;
-							int chunkHeight = 256;
-							int chunkWidth = 256;
-							char* pByteArray = new char[MAX_MTU_SIZE];
-							int writeIndex = 0;
-							int xOffset = 0;
-							int yOffset = 0;
-							for (int y = 0; y < chunkHeight; ++y)
+							for (int x = 0; x < chunkWidth; ++x)
 							{
-								for (int x = 0; x < chunkWidth; ++x)
+								pByteArray[writeIndex] = buffer[(y+yOffset) * orginalWidth + xOffset];
+								writeIndex += 1;
+								if (writeIndex > MAX_MTU_SIZE)
 								{
-									pByteArray[writeIndex] = buffer[(y+yOffset) * orginalWidth + xOffset];
-									writeIndex += 1;
-									if (writeIndex > MAX_MTU_SIZE)
-									{
-										iResult = send(*m_ClientSock, pByteArray, strlen(pByteArray), 0);
-										if (iResult == SOCKET_ERROR)
-											std::cerr << "Send failed with error: " << WSAGetLastError() << '\n';
+									iResult = send(*m_ClientSock, pByteArray, strlen(pByteArray), 0);
+									if (iResult == SOCKET_ERROR)
+										std::cerr << "Send failed with error: " << WSAGetLastError() << '\n';
 
-										memset(pByteArray, 0, MAX_MTU_SIZE);
-										writeIndex = 0;
-									}
+									memset(pByteArray, 0, MAX_MTU_SIZE);
+									writeIndex = 0;
 								}
 							}
-
-
-							// orginal 128x128
-							// 16x16
-
-							// v to get a chunk v
-							/*
-							static const unsigned int MAX_MTU_SIZE = 1024;
-							int orginalWidth = 128;
-							int chunkHeight = 16;
-							int chunkWidth = 16;
-							char* pByteArray = new char[MAX_MTU_SIZE];
-							int writeIndex = 0;
-							int xOffset = 16;
-							for (int y = 0; y < chunkHeight; ++y)
-							{
-								for (int x = 0; x < chunkWidth; ++x)
-								{
-									pByteArray[writeIndex] = buffer[y * orginalWidth + xOffset];
-									writeIndex += 1;
-									if (writeIndex > MAX_MTU_SIZE)
-									{
-										iResult = send(*m_ClientSock, pByteArray, strlen(pByteArray), 0);
-										if (iResult == SOCKET_ERROR)
-											std::cerr << "Send failed with error: " << WSAGetLastError() << '\n';
-										
-										memset(pByteArray, 0, MAX_MTU_SIZE);
-										writeIndex = 0;
-									}
-								}								
-							}*/
-
 						}
+
+
+						// orginal 128x128
+						// 16x16
+
+						// v to get a chunk v
+						/*
+						static const unsigned int MAX_MTU_SIZE = 1024;
+						int orginalWidth = 128;
+						int chunkHeight = 16;
+						int chunkWidth = 16;
+						char* pByteArray = new char[MAX_MTU_SIZE];
+						int writeIndex = 0;
+						int xOffset = 16;
+						for (int y = 0; y < chunkHeight; ++y)
+						{
+							for (int x = 0; x < chunkWidth; ++x)
+							{
+								pByteArray[writeIndex] = buffer[y * orginalWidth + xOffset];
+								writeIndex += 1;
+								if (writeIndex > MAX_MTU_SIZE)
+								{
+									iResult = send(*m_ClientSock, pByteArray, strlen(pByteArray), 0);
+									if (iResult == SOCKET_ERROR)
+										std::cerr << "Send failed with error: " << WSAGetLastError() << '\n';
+										
+									memset(pByteArray, 0, MAX_MTU_SIZE);
+									writeIndex = 0;
+								}
+							}								
+						}*/
 
 						//I don't know, it's a crappy failsafe
 						canSend = false;
 					}
 
 					fclose(file);
-					delete buffer;
+					delete[] buffer;
 
 				}
 				else
@@ -503,7 +499,7 @@ Client::ReceiveImage(char arrRecvMsg[], std::string msg)
 {
 	std::cout << "\nReceiving file ...\n";
 
-	static const unsigned int MAX_MTU_SIZE = 1024;
+	//static const unsigned int MAX_MTU_SIZE = 1024;
 
 	std::cout << msg << std::endl;
 	int width = 50;
