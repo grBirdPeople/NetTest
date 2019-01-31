@@ -44,7 +44,7 @@ private:
 	void	RecvUDP				( void );
 
 	void	HandleTxt			( const uInt startIndex, const uInt recvSize );
-	void	HandleTgaFile		( void );
+	void	HandleTgaFile		( const uInt recvSize );
 	void	HandleTgaChunk		( void );
 
 	//////////////////////////////////////////////////

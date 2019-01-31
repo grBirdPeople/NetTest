@@ -231,14 +231,44 @@ ServSideClient::HandleTxt( const uInt startIndex, const uInt recvSize )
 }
 
 
+
+
 //////////////////////////////////////////////////
 //	HandleTgaFile
 //////////////////////////////////////////////////
 void
-ServSideClient::HandleTgaFile( void )
+ServSideClient::HandleTgaFile(const uInt recvSize)
 {
 	m_MsgType = eMsgType::TGA_FILE;
+
+	m_Msg.clear();
+	for (uInt i = 0; i < (uInt)recvSize; ++i)
+		m_Msg.push_back(m_arrRecvMsg[i]);
+
+	{
+		std::lock_guard< std::mutex > lg(m_Mutex);
+		m_pServer->PushJob(*this);
+	}
+	// Find data piece for amount of packages being sent
+	std::size_t found1 = m_Msg.rfind("*");
+	std::string stringChunks = m_Msg.substr(found1 + 1);
+	int amountChunks = stoi(stringChunks);
+
+	// Collect all image pieces and send them out as jobs
+	for (uInt i = 0; i < amountChunks; i++)
+	{
+		m_Msg.clear();
+		memset(m_arrRecvMsg, '\0', MAX_CHARS);
+		int recvSize = recv(*m_pClientSockTCP, m_arrRecvMsg, MAX_CHARS, 0);
+
+		for (uInt i = 0; i < (uInt)recvSize; ++i)
+			m_Msg.push_back(m_arrRecvMsg[i]);
+
+		std::lock_guard< std::mutex > lg(m_Mutex);
+		m_pServer->PushJob(*this);
+	}
 }
+
 
 
 //////////////////////////////////////////////////

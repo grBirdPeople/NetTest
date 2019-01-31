@@ -627,9 +627,20 @@ Server::Distribute( void )
 
 		case eMsgType::TGA_FILE:
 
+			for (uInt i = 0; i < m_pVecServSideClient.size(); ++i)
+			{
+				if (m_pVecServSideClient[i]->GetPeerPort() == clientPort)
+					continue;
 
+				iResult = send(m_pVecServSideClient[i]->GetSockRef(), clientMsg.c_str(), (size_t)strlen(clientMsg.c_str()), 0);
+
+
+				if (iResult == SOCKET_ERROR)
+					std::cerr << "\n> Send failed with error: " << WSAGetLastError() << '\n';
+			}
 
 			break;	// Case end //
+
 
 
 		case eMsgType::TGA_CHUNK:
