@@ -254,11 +254,9 @@ Client::Send( void )
 						//> send one message with
 						//	name	width	height	amount of packages being sent
 
-
-						//ReceiveImage(reinterpret_cast<char*>(buffer));
 						std::string infomsg;
 						infomsg += msg.substr(0, 1);
-						/**/
+
 						std::size_t rfound = msg.rfind("/",found);
 
 						if (rfound != std::string::npos)
@@ -267,9 +265,6 @@ Client::Send( void )
 							infomsg += msg.substr(1, found-1);
 						std::cout << infomsg << std::endl;
 						infomsg += "*";
-
-						//Add height and width, two bytes each
-						//Add how many more messages are coming, one byte (probably)
 
 						infomsg += std::to_string(width);
 						infomsg += "*";
@@ -296,25 +291,15 @@ Client::Send( void )
 
 						std::cout << infomsg << "\n";
 
-
+							// Send header file
 						int	iResult = send(*m_ClientSock, infomsg.c_str(), strlen(infomsg.c_str()), 0);
 						if (iResult == SOCKET_ERROR)
 							std::cerr << "Send failed with error: " << WSAGetLastError() << '\n';
 
 
-						//for (int i = 0; i < imageSize; i++)
+							// Send image code chunks (assuming image size is 256x256)
+						for (int i = 0; i < imageSize; i++)
 						{
-							std::cout << "Hello?\n";
-							//const char* chunk;
-							//memcpy(&chunk, &buffer[i*1440], 1440);
-							//std::cout << "Hello.\n";
-							//iResult = send(*m_ClientSock, chunk, strlen(chunk), 0);
-							/*if (iResult == SOCKET_ERROR)
-								std::cerr << "Send failed with error: " << WSAGetLastError() << '\n';
-							else
-								std::cout << "Chunk " << i << " sent\n";*/
-
-
 							static const unsigned int MAX_MTU_SIZE = 1024;
 							int orginalWidth = 256;
 							int chunkHeight = 256;
@@ -372,28 +357,10 @@ Client::Send( void )
 								}								
 							}*/
 
-							/*
-							// bpp = bytes per pixel ( 4 )
-							int lastCopiedIndex = 0;
-							int bytesLeft = width * height*bpp;
-							char* pOutbuffer = new char[width*height*bpp];
-							while (tcp.poll() == true)
-							{
-								char* pReadBuffer = rcp.recive(socket);
-								memcpy(&pOutbuffer[lastCopiedIndex], pReadBuffer, MAX_MTU_SIZE);
-								lastCopiedIndex += MAX_MTU_SIZE;
-								bytesLeft -= MAX_MTU_SIZE;
-								if (bytesLeft < MAX_MTU_SIZE)
-								{
-									// handle tail copy
-									//Make sure to only copy the ones being used
-								}
-							}
-							*/
 						}
 
+						//I don't know, it's a crappy failsafe
 						canSend = false;
-						//msg += reinterpret_cast<const char*>(buffer);
 					}
 
 					fclose(file);
@@ -511,6 +478,7 @@ Client::Receive( void )
 			msg.clear();
 			for (uInt i = 0; i < (uInt)recvSize; ++i)
 				msg.push_back(arrRecvMsg[i]);
+
 			ReceiveImage(arrRecvMsg, msg);
 		}
 		else
@@ -543,6 +511,7 @@ Client::ReceiveImage(char arrRecvMsg[], std::string msg)
 	int ID = 0;
 	int amountChunks = 1;
 
+		// Get info from header
 	std::size_t found1 = msg.find("*");
 	std::size_t found2 = msg.find("*", found1 + 1);
 	std::size_t found3 = msg.find("*", found2 + 1);
@@ -557,18 +526,20 @@ Client::ReceiveImage(char arrRecvMsg[], std::string msg)
 	height = stoi(heightString);
 	amountChunks = stoi(chunkString);
 	int bpp = 4;
-	unsigned char* buffer = new unsigned char[width*height*bpp];
 
+	//char* pOutbuffer = new char[width*height*bpp];
+	unsigned char* buffer = new unsigned char[width*height*bpp];
 
 	// bpp = bytes per pixel ( 4 )
 	int lastCopiedIndex = 0;
 	int bytesLeft = width * height*bpp;
-	//char* pOutbuffer = new char[width*height*bpp];
-	//while (tcp.poll() == true)
-	for(int i=0; i<amountChunks; i++)
+
+
+	//while (tcp.poll() == true) <- Make this work? How?
+	for(int i=0; i<amountChunks; i++)	// <- Temp solution meanwhile
 	{
-		char* pReadBuffer;
-		int recvSize = recv(*m_ClientSock, arrRecvMsg, MAX_CHARS, 0);
+		int recvSize = recv(*m_ClientSock, arrRecvMsg, MAX_MTU_SIZE, 0);
+		char* pReadBuffer = new char[MAX_MTU_SIZE];
 		for (uInt i = 0; i < (uInt)recvSize; ++i)
 			pReadBuffer[i]=arrRecvMsg[i];
 
@@ -577,7 +548,10 @@ Client::ReceiveImage(char arrRecvMsg[], std::string msg)
 		bytesLeft -= MAX_MTU_SIZE;
 		if (bytesLeft < MAX_MTU_SIZE)
 		{
-			//pReadBuffer = rcp.recive(socket);
+			recvSize = recv(*m_ClientSock, arrRecvMsg, bytesLeft, 0);
+			for (uInt i = 0; i < (uInt)recvSize; ++i)
+				pReadBuffer[i] = arrRecvMsg[i];
+
 			memcpy(&buffer[lastCopiedIndex], pReadBuffer, bytesLeft);
 			//break;
 		}
@@ -588,9 +562,6 @@ Client::ReceiveImage(char arrRecvMsg[], std::string msg)
 
 	if (buffer != nullptr)
 	{
-
-		//width = tgaGetWidth(buffer);
-		//height = tgaGetHeight(buffer);
 
 		int startY = 0;
 		int fakeID = ID;
@@ -630,7 +601,7 @@ Client::ReceiveImage(char arrRecvMsg[], std::string msg)
 
 		write_header(header, tga2);
 
-		// To write in without resizing
+		// To write in entire image
 		for (int y = 0; y < height; ++y)
 		{
 			for (int x = 0; x < width; x++)
@@ -662,21 +633,6 @@ Client::ReceiveImage(char arrRecvMsg[], std::string msg)
 			fputc(pixels[startPos + (((256 * y) + x) * 4) + 0], tga2);
 			fputc(pixels[startPos + (((256 * y) + x) * 4) + 3], tga2);
 
-		}
-	}
-	
-
-	for (int y = 0; y < height; y++)
-	{
-		for (int x = 0; x < width; x++)
-		{
-			// B G R order 
-
-			fputc(pixels[(((256 * y) + x) * 4) + 2], tga2);
-			fputc(pixels[(((256 * y) + x) * 4) + 1], tga2);
-			fputc(pixels[(((256 * y) + x) * 4) + 0], tga2);
-			fputc(pixels[(((256 * y) + x) * 4) + 3], tga2);
-			std::cout << "Pixel written\n";
 		}
 	}
 
