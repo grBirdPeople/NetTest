@@ -37,12 +37,13 @@ public:
 
 	//////////////////////////////////////////////////
 
-	void	SetServerIP		( const char* serverIP )	{ m_ServerIP = serverIP; }
-	void	SetServerPort	( const uInt serverPort )	{ m_ServerPort = serverPort; }
+	void	SetServerIP			( const char* serverIP )	{ m_ServerIP = serverIP; }
+	void	SetServerPort		( const uInt serverPort )	{ m_ServerPort = serverPort; }
 
-	void	Run				( void );
+	void	Run					( void );
 
-	void	PushJob			( ServSideClient& job );
+	void	PushJob				( ServSideClient& job );
+	bool	FindConnectedClient	( const std::string& name );
 
 	//////////////////////////////////////////////////
 

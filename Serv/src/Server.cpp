@@ -98,6 +98,22 @@ Server::PushJob( ServSideClient& job )
 
 
 //////////////////////////////////////////////////
+//	FindConnectedClient
+//////////////////////////////////////////////////
+bool
+Server::FindConnectedClient( const std::string & name )
+{
+	for( uInt i = 0; i < m_VecServSideClient.size(); ++i )
+	{
+		if( m_VecServSideClient[ i ]->GetName() == name )
+			return true;
+	}
+
+	return false;
+}
+
+
+//////////////////////////////////////////////////
 //	Init
 //////////////////////////////////////////////////
 void

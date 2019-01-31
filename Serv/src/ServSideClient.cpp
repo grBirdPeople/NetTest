@@ -124,6 +124,14 @@ ServSideClient::ReceiveFromClientSide( void )
 				}
 
 
+				// Check if username is valid
+				if( m_Server->FindConnectedClient( m_whisperAtUserName ) != true )
+				{
+					// Send error msg to to user or something
+					continue;
+				}
+
+
 				// Find where next char that is not space is
 				for( uInt i = whisperUserAfterIndex; i < ( uInt )recvSize; ++i )
 				{
