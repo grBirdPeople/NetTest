@@ -2,7 +2,7 @@
 
 #include	"Common.hpp"
 
-#define		MAX_CHARS 128
+#define		MAX_CHARS 1024
 
 class		Server;
 
