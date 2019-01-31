@@ -212,6 +212,10 @@ Client::Send( void )
 				FILE *file = fopen(msg.substr(1,found+3).c_str(), "r");
 
 				int size = 0;
+
+				int height = 0;
+				int width = 0;
+
 				if (file)
 				{
 					fseek(file, 0, SEEK_END);
@@ -219,6 +223,9 @@ Client::Send( void )
 					fseek(file, 0, SEEK_SET);
 					unsigned char* buffer = new (unsigned char[size]);
 					fread(buffer, 1, size, file);
+
+					width = tgaGetWidth(buffer);
+					height = tgaGetHeight(buffer);
 
 					std::cout << msg[0] << std::endl;
 					if(msg[0] == eMsgType::TGA_CHUNK + 48)
@@ -237,6 +244,14 @@ Client::Send( void )
 
 					if(canSend==true)
 					{
+
+						//> send one message with
+						//	name
+						//	width
+						//	height
+						//	amount of packages being sent
+
+
 						//ReceiveImage(reinterpret_cast<char*>(buffer));
 						std::string infomsg = msg.substr(0, 1);
 
@@ -247,8 +262,28 @@ Client::Send( void )
 						else
 							infomsg += msg.substr(1, found-1);
 						std::cout << infomsg << std::endl;
+						infomsg += "*";
 
+						//Add height and width, two bytes each
+						//Add how many more messages are coming, one byte (probably)
 
+						infomsg += width;
+						infomsg += "*";
+						infomsg += height;
+						infomsg += "*";
+
+						if (width > 5000 || height > 5000)
+						{	std::cout << "Error: File too large\n";
+							canSend=false;	}
+
+						std::vector<const char*> imageData;
+						reinterpret_cast<const char*>(buffer);
+
+						for (size_t i = 0; i < sizeof(buffer); i++)
+						{
+							//imageData.push_back(buffer);
+
+						}
 
 						canSend = false;
 						//msg += reinterpret_cast<const char*>(buffer);
