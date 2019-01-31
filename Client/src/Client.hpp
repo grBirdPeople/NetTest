@@ -43,7 +43,7 @@ private:
 
 	void			Send			( void );
 	void			Receive			( void );
-	void			ReceiveImage	( char arrRecvMsg[]);
+	void			ReceiveImage	( char arrRecvMsg[], std::string msg);
 
 	unsigned char*	CutChunk		( std::string msg, unsigned char* buffer );
 
@@ -53,6 +53,8 @@ private:
 
 
 private:
+
+	unsigned char* testBuffer;
 
 	SOCKET*		m_ClientSock;
 

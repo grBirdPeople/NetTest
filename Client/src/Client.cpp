@@ -252,15 +252,13 @@ Client::Send( void )
 					{
 
 						//> send one message with
-						//	name
-						//	width
-						//	height
-						//	amount of packages being sent
+						//	name	width	height	amount of packages being sent
 
 
 						//ReceiveImage(reinterpret_cast<char*>(buffer));
-						std::string infomsg = msg.substr(0, 1);
-
+						std::string infomsg;
+						infomsg += msg.substr(0, 1);
+						/**/
 						std::size_t rfound = msg.rfind("/",found);
 
 						if (rfound != std::string::npos)
@@ -273,22 +271,125 @@ Client::Send( void )
 						//Add height and width, two bytes each
 						//Add how many more messages are coming, one byte (probably)
 
-						infomsg += width;
+						infomsg += std::to_string(width);
 						infomsg += "*";
-						infomsg += height;
+						infomsg += std::to_string(height);
 						infomsg += "*";
 
 						if (width > 5000 || height > 5000)
 						{	std::cout << "Error: File too large\n";
 							canSend=false;	}
 
-						std::vector<const char*> imageData;
-						reinterpret_cast<const char*>(buffer);
 
-						for (size_t i = 0; i < sizeof(buffer); i++)
+						size_t o = 0;
+						const char* dataChunk;
+
+						int imageSize=0;
+						for (size_t i = 0; i < size; i++)
 						{
-							//imageData.push_back(buffer);
+							if (size > 1440 * i)
+								imageSize++;
+							else
+								break;
+						}
+						infomsg += std::to_string(imageSize);
 
+						std::cout << infomsg << "\n";
+
+
+						int	iResult = send(*m_ClientSock, infomsg.c_str(), strlen(infomsg.c_str()), 0);
+						if (iResult == SOCKET_ERROR)
+							std::cerr << "Send failed with error: " << WSAGetLastError() << '\n';
+
+
+						//for (int i = 0; i < imageSize; i++)
+						{
+							std::cout << "Hello?\n";
+							//const char* chunk;
+							//memcpy(&chunk, &buffer[i*1440], 1440);
+							//std::cout << "Hello.\n";
+							//iResult = send(*m_ClientSock, chunk, strlen(chunk), 0);
+							/*if (iResult == SOCKET_ERROR)
+								std::cerr << "Send failed with error: " << WSAGetLastError() << '\n';
+							else
+								std::cout << "Chunk " << i << " sent\n";*/
+
+
+							static const unsigned int MAX_MTU_SIZE = 1024;
+							int orginalWidth = 256;
+							int chunkHeight = 256;
+							int chunkWidth = 256;
+							char* pByteArray = new char[MAX_MTU_SIZE];
+							int writeIndex = 0;
+							int xOffset = 0;
+							int yOffset = 0;
+							for (int y = 0; y < chunkHeight; ++y)
+							{
+								for (int x = 0; x < chunkWidth; ++x)
+								{
+									pByteArray[writeIndex] = buffer[(y+yOffset) * orginalWidth + xOffset];
+									writeIndex += 1;
+									if (writeIndex > MAX_MTU_SIZE)
+									{
+										iResult = send(*m_ClientSock, pByteArray, strlen(pByteArray), 0);
+										if (iResult == SOCKET_ERROR)
+											std::cerr << "Send failed with error: " << WSAGetLastError() << '\n';
+
+										memset(pByteArray, 0, MAX_MTU_SIZE);
+										writeIndex = 0;
+									}
+								}
+							}
+
+
+							// orginal 128x128
+							// 16x16
+
+							// v to get a chunk v
+							/*
+							static const unsigned int MAX_MTU_SIZE = 1024;
+							int orginalWidth = 128;
+							int chunkHeight = 16;
+							int chunkWidth = 16;
+							char* pByteArray = new char[MAX_MTU_SIZE];
+							int writeIndex = 0;
+							int xOffset = 16;
+							for (int y = 0; y < chunkHeight; ++y)
+							{
+								for (int x = 0; x < chunkWidth; ++x)
+								{
+									pByteArray[writeIndex] = buffer[y * orginalWidth + xOffset];
+									writeIndex += 1;
+									if (writeIndex > MAX_MTU_SIZE)
+									{
+										iResult = send(*m_ClientSock, pByteArray, strlen(pByteArray), 0);
+										if (iResult == SOCKET_ERROR)
+											std::cerr << "Send failed with error: " << WSAGetLastError() << '\n';
+										
+										memset(pByteArray, 0, MAX_MTU_SIZE);
+										writeIndex = 0;
+									}
+								}								
+							}*/
+
+							/*
+							// bpp = bytes per pixel ( 4 )
+							int lastCopiedIndex = 0;
+							int bytesLeft = width * height*bpp;
+							char* pOutbuffer = new char[width*height*bpp];
+							while (tcp.poll() == true)
+							{
+								char* pReadBuffer = rcp.recive(socket);
+								memcpy(&pOutbuffer[lastCopiedIndex], pReadBuffer, MAX_MTU_SIZE);
+								lastCopiedIndex += MAX_MTU_SIZE;
+								bytesLeft -= MAX_MTU_SIZE;
+								if (bytesLeft < MAX_MTU_SIZE)
+								{
+									// handle tail copy
+									//Make sure to only copy the ones being used
+								}
+							}
+							*/
 						}
 
 						canSend = false;
@@ -311,9 +412,10 @@ Client::Send( void )
 				canSend = false;
 			}
 		}
-
+		
 		if (canSend == true)
 		{
+		
 			int	iResult = send(*m_ClientSock, msg.c_str(), strlen(msg.c_str()), 0);
 			if (iResult == SOCKET_ERROR)
 				std::cerr << "Send failed with error: " << WSAGetLastError() << '\n';
@@ -385,7 +487,7 @@ Client::CutChunk(std::string msg, unsigned char* buffer)
 	}
 	//buffer = newBuffer;
 
-	ReceiveImage(reinterpret_cast<char*>(newBuffer));
+	//ReceiveImage(reinterpret_cast<char*>(newBuffer));
 
 	return newBuffer;
 }
@@ -406,7 +508,10 @@ Client::Receive( void )
 
 		if (arrRecvMsg[0] == '1'|| arrRecvMsg[0] == '2')
 		{
-			ReceiveImage(arrRecvMsg);
+			msg.clear();
+			for (uInt i = 0; i < (uInt)recvSize; ++i)
+				msg.push_back(arrRecvMsg[i]);
+			ReceiveImage(arrRecvMsg, msg);
 		}
 		else
 		{
@@ -426,22 +531,66 @@ Client::Receive( void )
 //	ReceiveImage
 //////////////////////////////////////////////////
 void
-Client::ReceiveImage(char arrRecvMsg[])
+Client::ReceiveImage(char arrRecvMsg[], std::string msg)
 {
 	std::cout << "\nReceiving file ...\n";
 
-	unsigned char* buffer = reinterpret_cast<unsigned char*>(arrRecvMsg);
+	static const unsigned int MAX_MTU_SIZE = 1024;
+
+	std::cout << msg << std::endl;
+	int width = 50;
+	int height = 50;
+	int ID = 0;
+	int amountChunks = 1;
+
+	std::size_t found1 = msg.find("*");
+	std::size_t found2 = msg.find("*", found1 + 1);
+	std::size_t found3 = msg.find("*", found2 + 1);
+	std::size_t found4 = msg.find("*", found3 + 1);
+
+	std::string filename = msg.substr(found1 + 1, found2 - (found1 + 1));
+	std::string widthString = msg.substr(found2 + 1, found3 - (found2 + 1));
+	std::string heightString = msg.substr(found3 + 1, found4 - (found3 + 1));
+	std::string chunkString = msg.substr(found4 + 1);
+
+	width = stoi(widthString);
+	height = stoi(heightString);
+	amountChunks = stoi(chunkString);
+	int bpp = 4;
+	unsigned char* buffer = new unsigned char[width*height*bpp];
+
+
+	// bpp = bytes per pixel ( 4 )
+	int lastCopiedIndex = 0;
+	int bytesLeft = width * height*bpp;
+	//char* pOutbuffer = new char[width*height*bpp];
+	//while (tcp.poll() == true)
+	for(int i=0; i<amountChunks; i++)
+	{
+		char* pReadBuffer;
+		int recvSize = recv(*m_ClientSock, arrRecvMsg, MAX_CHARS, 0);
+		for (uInt i = 0; i < (uInt)recvSize; ++i)
+			pReadBuffer[i]=arrRecvMsg[i];
+
+		memcpy(&buffer[lastCopiedIndex], pReadBuffer, MAX_MTU_SIZE);
+		lastCopiedIndex += MAX_MTU_SIZE;
+		bytesLeft -= MAX_MTU_SIZE;
+		if (bytesLeft < MAX_MTU_SIZE)
+		{
+			//pReadBuffer = rcp.recive(socket);
+			memcpy(&buffer[lastCopiedIndex], pReadBuffer, bytesLeft);
+			//break;
+		}
+	}
+
 
 	unsigned char* pixels;
-	int width=50;
-	int height=50;
-	int ID = 0;
 
 	if (buffer != nullptr)
 	{
 
-		width = tgaGetWidth(buffer);
-		height = tgaGetHeight(buffer);
+		//width = tgaGetWidth(buffer);
+		//height = tgaGetHeight(buffer);
 
 		int startY = 0;
 		int fakeID = ID;
