@@ -142,10 +142,7 @@ ServSideClient::ReceiveFromClientSide( void )
 				}
 				else if( m_arrRecvMsg[ whisperMsgStartIndex ] == '/' )
 				{
-					if( m_arrRecvMsg[ whisperMsgStartIndex + 1 ] == '/' )
-						HandleTgaChunk();
-					else
-						HandleTgaFile();
+					( m_arrRecvMsg[ whisperMsgStartIndex + 1 ] == '/' ) ? HandleTgaChunk() : HandleTgaFile();
 				}
 			}
 
@@ -199,6 +196,8 @@ void
 ServSideClient::HandleTgaFile( void )
 {
 	m_MsgType = eMsgType::TGA_FILE;
+
+	std::cout << "file\n";
 }
 
 
@@ -209,4 +208,6 @@ void
 ServSideClient::HandleTgaChunk( void )
 {
 	m_MsgType = eMsgType::TGA_CHUNK;
+
+	std::cout << "chunk\n";
 }
