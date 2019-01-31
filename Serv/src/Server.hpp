@@ -37,7 +37,7 @@ public:
 
 	//////////////////////////////////////////////////
 
-	void	SetServerIP			( const char* serverIP )	{ m_ServerIP = serverIP; }
+	void	SetServerIP			( const char* serverIP )	{ m_pServerIP = serverIP; }
 	void	SetServerPort		( const uInt serverPort )	{ m_ServerPort = serverPort; }
 
 	void	Run					( void );
@@ -64,10 +64,10 @@ private:
 	
 private:
 
-	std::vector< ServSideClient* >	m_VecServSideClient;
+	std::vector< ServSideClient* >	m_pVecServSideClient;
 
-	std::queue< ServSideClient* >	m_QueueShake;
-	std::queue< ServSideClient* >	m_QueueJob;		// No ownage // Don't delete when pop, only nullptr
+	std::queue< ServSideClient* >	m_pQueueShake;
+	std::queue< ServSideClient* >	m_pQueueJob;		// No ownage // Don't delete when pop, only nullptr
 
 	std::thread						m_ThreadAdmin;
 	std::thread						m_ThreadListen;
@@ -76,7 +76,7 @@ private:
 
 	std::mutex						m_Mutex;
 
-	const char*						m_ServerIP;
+	const char*						m_pServerIP;
 	uInt							m_ServerPort;
 
 	uInt							m_CurrentServState;

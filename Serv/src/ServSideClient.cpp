@@ -7,12 +7,13 @@
 //////////////////////////////////////////////////
 ServSideClient::ServSideClient( SOCKET& acceptSocket, const std::string userName, Server* server )
 	: m_UserName		( userName )
-	, m_ClientSock		( new SOCKET )
-	, m_Server			( server )
+	, m_pClientSock		( new SOCKET )
+	, m_pServer			( server )
 	, m_PeerPort		( 0 )
 	, m_MsgType			( eMsgType::ALL )
+	, m_ClientIsAlive	( true )
 {
-	m_ClientSock	= &acceptSocket;
+	m_pClientSock	= &acceptSocket;
 	//m_ThreadReceive	= std::thread( &ServSideClient::ReceiveFromClientSide, this );
 
 	InitClientInfo();
@@ -24,20 +25,20 @@ ServSideClient::ServSideClient( SOCKET& acceptSocket, const std::string userName
 //////////////////////////////////////////////////
 ServSideClient::~ServSideClient( void )
 {
-	if( m_Server )
-		m_Server = nullptr;
-
 	if( m_ThreadReceive.joinable() )
 		m_ThreadReceive.join();
 
-	if( m_ClientSock )
+	if( m_pServer )
+		m_pServer = nullptr;
+
+	if( m_pClientSock )
 	{
-		shutdown( *m_ClientSock, SD_BOTH );
-		closesocket( *m_ClientSock );
+		shutdown( *m_pClientSock, SD_BOTH );
+		closesocket( *m_pClientSock );
 	}
 
-	if( m_ClientSock )
-		AUTO_DEL( m_ClientSock );
+	if( m_pClientSock )
+		AUTO_DEL( m_pClientSock );
 }
 
 
@@ -52,25 +53,29 @@ ServSideClient::StartRecievingThread( void )
 
 
 //////////////////////////////////////////////////
+//	DeInit
+//////////////////////////////////////////////////
+void
+ServSideClient::Kill( void )
+{
+	m_ClientIsAlive = false;
+}
+
+
+//////////////////////////////////////////////////
 //	GetClientInfo
 //////////////////////////////////////////////////
 void
 ServSideClient::InitClientInfo( void )
 {
 	struct sockaddr_in	clientPeerInfo;
-	//struct sockaddr_in	clientSockInfo;
 
 	int peerLength = sizeof( clientPeerInfo );
-	//int sockLength = sizeof( clientSockInfo );
 
-	getpeername( *m_ClientSock, ( struct sockaddr* )&clientPeerInfo, &peerLength );
-	//getpeername( *m_ClientSock, ( struct sockaddr* )&clientSockInfo, &sockLength );
+	getpeername( *m_pClientSock, ( struct sockaddr* )&clientPeerInfo, &peerLength );
 
 	m_PeerIP	= inet_ntoa( clientPeerInfo.sin_addr );
 	m_PeerPort	= clientPeerInfo.sin_port;
-
-	//m_SockIP	= inet_ntoa( clientSockInfo.sin_addr );
-	//m_SockPort	= clientSockInfo.sin_port;
 }
 
 
@@ -85,9 +90,13 @@ ServSideClient::ReceiveFromClientSide( void )
 	uInt whisperMsgStartIndex	= 0;
 
 
-	while( true )
+	while( m_ClientIsAlive )
 	{
-		int recvSize = recv( *m_ClientSock, m_arrRecvMsg, MAX_CHARS, 0 );
+		memset( m_arrRecvMsg, '\0', MAX_CHARS );
+		int recvSize = recv( *m_pClientSock, m_arrRecvMsg, MAX_CHARS, 0 );
+
+		if( m_ClientIsAlive == false )
+			continue;
 
 		m_MsgType =	( m_arrRecvMsg[ 0 ] == '1' ) ? eMsgType::WHISPER : eMsgType::ALL;
 
@@ -125,14 +134,14 @@ ServSideClient::ReceiveFromClientSide( void )
 
 
 				// Check if username is valid
-				if( m_Server->FindConnectedClient( m_whisperAtUserName ) != true )
+				if( m_pServer->FindConnectedClient( m_whisperAtUserName ) != true )
 				{
 					// Send error msg to to user or something
 					continue;
 				}
 
 
-				// Find where next char that is not space is
+				// Find where next char that is not ' ' is
 				for( uInt i = whisperUserAfterIndex; i < ( uInt )recvSize; ++i )
 				{
 					if( m_arrRecvMsg[ i ] != ' ' )
@@ -143,7 +152,7 @@ ServSideClient::ReceiveFromClientSide( void )
 				}
 
 
-				// Evaluate result
+				// Evaluate
 				if( m_arrRecvMsg[ whisperMsgStartIndex ] != '/' )
 				{
 					HandleTxt( whisperMsgStartIndex, ( uInt )recvSize );
@@ -173,7 +182,7 @@ ServSideClient::ReceiveFromClientSide( void )
 
 
 		default:
-			std::cerr << "\nSomething in ServSideClient::ReceiveFromClientSide() borke\n";
+			std::cerr << "\n> Something in ServSideClient::ReceiveFromClientSide() borke\n";
 			break;	// Case end //
 		}
 	}
@@ -192,7 +201,7 @@ ServSideClient::HandleTxt( const uInt startIndex, const uInt recvSize )
 
 	{
 		std::lock_guard< std::mutex > lg( m_Mutex );
-		m_Server->PushJob( *this );
+		m_pServer->PushJob( *this );
 	}
 }
 
@@ -204,8 +213,6 @@ void
 ServSideClient::HandleTgaFile( void )
 {
 	m_MsgType = eMsgType::TGA_FILE;
-
-	std::cout << "file\n";
 }
 
 
@@ -216,6 +223,4 @@ void
 ServSideClient::HandleTgaChunk( void )
 {
 	m_MsgType = eMsgType::TGA_CHUNK;
-
-	std::cout << "chunk\n";
 }
