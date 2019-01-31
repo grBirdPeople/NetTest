@@ -138,31 +138,37 @@ Client::ServerConnect( void )
 	}
 	else
 	{
-
-		//recvSize = recv( *m_ClientSock, arrRecvMsg, MAX_CHARS, 0 );
-
-		//msg.clear();
-		//for ( uInt i = 0; i < ( uInt )recvSize; ++i )
-		//	msg.push_back( arrRecvMsg[ i ] );
+		std::cout << "\n> Waiting for server response...\n";
 
 
-		//if( msg[ 0 ] == '9' )
-		//{
-		//	iResult = send(*m_ClientSock, msg.c_str(), strlen(msg.c_str()), 0);
-		//	if( iResult == SOCKET_ERROR )
-		//		std::cerr << "\nSend failed with error: " << WSAGetLastError() << '\n';
-		//}
+		// Get confirm from server
+		recvSize = recv( *m_ClientSock, arrRecvMsg, MAX_CHARS, 0 );
+
+		msg.clear();
+		for ( uInt i = 0; i < ( uInt )recvSize; ++i )
+			msg.push_back( arrRecvMsg[ i ] );
 
 
-		//recvSize = recv( *m_ClientSock, arrRecvMsg, MAX_CHARS, 0 );
+		// Send username to server
+		if( msg == "All good in the hood" )
+		{
+			iResult = send( *m_ClientSock, m_UserName.c_str(), strlen( m_UserName.c_str() ), 0);
+			if( iResult == SOCKET_ERROR )
+				std::cerr << "\nSend failed with error: " << WSAGetLastError() << '\n';
+		}
 
-		//msg.clear();
-		//for ( uInt i = 0; i < ( uInt )recvSize; ++i )
-		//	msg.push_back( arrRecvMsg[ i ] );
 
-		//std::cout << "> " << msg << "\n\n";
+		// Get permishion from servers
+		recvSize = recv( *m_ClientSock, arrRecvMsg, MAX_CHARS, 0 );
+
+		msg.clear();
+		for ( uInt i = 0; i < ( uInt )recvSize; ++i )
+			msg.push_back( arrRecvMsg[ i ] );
+
+		std::cout << "> " << msg << "\n\n";
 
 
+		// Change state
 		m_InitSendRecvThreads	= true;
 		m_CurrentClientState	= eState::RUN;
 	}
