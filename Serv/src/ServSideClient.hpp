@@ -37,8 +37,11 @@ public:
 private:
 
 	void	InitClientInfo			( void );
-
 	void	ReceiveFromClientSide	( void );
+
+	void	HandleTxt				( const uInt startIndex, const uInt recvSize );
+	void	HandleTgaFile			( void );
+	void	HandleTgaChunk			( void );
 
 	//////////////////////////////////////////////////
 

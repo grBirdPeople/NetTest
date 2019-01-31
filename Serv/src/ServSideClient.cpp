@@ -80,14 +80,16 @@ ServSideClient::InitClientInfo( void )
 void
 ServSideClient::ReceiveFromClientSide( void )
 {
+	uInt whisperUserStartIndex	= 0;
+	uInt whisperUserAfterIndex	= 0;
+	uInt whisperMsgStartIndex	= 0;
+
+
 	while( true )
 	{
 		int recvSize = recv( *m_ClientSock, m_arrRecvMsg, MAX_CHARS, 0 );
 
-		m_MsgType =	( m_arrRecvMsg[ 0 ] == '1' )	? eMsgType::WHISPER		:
-					( m_arrRecvMsg[ 0 ] == '2' )	? eMsgType::TGA_FILE	:
-					( m_arrRecvMsg[ 0 ] == '3' )	? eMsgType::TGA_CHUNK	:
-													eMsgType::ALL;
+		m_MsgType =	( m_arrRecvMsg[ 0 ] == '1' ) ? eMsgType::WHISPER : eMsgType::ALL;
 
 
 		switch( m_MsgType )
@@ -97,11 +99,7 @@ ServSideClient::ReceiveFromClientSide( void )
 
 			if( recvSize > 0 )
 			{
-				uInt		whisperUserStartIndex;
-				uInt		whisperMsgStartIndex;
-
-
-				// Find whisper at username start index
+				// Check until first non ' ' char
 				for( uInt i = 1; i < ( uInt )recvSize; ++i )
 				{
 					if( m_arrRecvMsg[ i ] != ' ' )
@@ -116,53 +114,37 @@ ServSideClient::ReceiveFromClientSide( void )
 				m_whisperAtUserName.clear();
 				for( uInt i = whisperUserStartIndex; i < ( uInt )recvSize; ++i )
 				{
-					if( m_arrRecvMsg[ i ] == ' ' )
+					if( m_arrRecvMsg[ i ] != ' ' )
+						m_whisperAtUserName.push_back( m_arrRecvMsg[ i ] );
+					else
 					{
-						for( uInt j = i; j < ( uInt )recvSize; ++j )
-						{
-							if( m_arrRecvMsg[ j ] != ' ' )
-							{
-								whisperMsgStartIndex = j;
-								break;
-							}
-						}
-
+						whisperUserAfterIndex = i;
 						break;
 					}
-
-
-					{
-						std::lock_guard< std::mutex > lg( m_Mutex );
-						m_whisperAtUserName.push_back( m_arrRecvMsg[ i ] );
-					}
 				}
 
 
-				// Fiund actual msg
-				m_Msg.clear();
-				for( uInt i = whisperMsgStartIndex; i < ( uInt )recvSize; ++i )
-					m_Msg.push_back( m_arrRecvMsg[ i ] );
-
-
+				// Find where next char that is not space is
+				for( uInt i = whisperUserAfterIndex; i < ( uInt )recvSize; ++i )
 				{
-					std::lock_guard< std::mutex > lg( m_Mutex );
-					m_Server->PushJob( *this );
+					if( m_arrRecvMsg[ i ] != ' ' )
+						whisperMsgStartIndex = i;
+				}
+
+
+				// Evaluate result
+				if( m_arrRecvMsg[ whisperMsgStartIndex ] != '/' )
+				{
+					HandleTxt( whisperMsgStartIndex, ( uInt )recvSize );
+				}
+				else if( m_arrRecvMsg[ whisperMsgStartIndex ] == '/' )
+				{
+					if( m_arrRecvMsg[ whisperMsgStartIndex + 1 ] == '/' )
+						HandleTgaChunk();
+					else
+						HandleTgaFile();
 				}
 			}
-
-			break;	// Case end //
-
-
-		case eMsgType::TGA_FILE:
-
-
-
-			break;	// Case end //
-
-
-
-		case eMsgType::TGA_CHUNK:
-
 
 
 			break;	// Case end //
@@ -173,14 +155,9 @@ ServSideClient::ReceiveFromClientSide( void )
 
 			if( recvSize > 0 )
 			{
-				m_Msg.clear();
-				for( uInt i = 0; i < ( uInt )recvSize; ++i )
-					m_Msg.push_back( m_arrRecvMsg[ i ] );
-
-				{
-					std::lock_guard< std::mutex > lg( m_Mutex );
-					m_Server->PushJob( *this );
-				}
+				( m_arrRecvMsg[ 0 ] == '/' ) ?	HandleTgaFile() :
+				( m_arrRecvMsg[ 1 ] == '/' ) ?	HandleTgaChunk() :
+												HandleTxt( 0, ( uInt )recvSize );
 			}
 
 
@@ -192,4 +169,41 @@ ServSideClient::ReceiveFromClientSide( void )
 			break;	// Case end //
 		}
 	}
+}
+
+
+//////////////////////////////////////////////////
+//	HandleTxt
+//////////////////////////////////////////////////
+void
+ServSideClient::HandleTxt( const uInt startIndex, const uInt recvSize )
+{
+	m_Msg.clear();
+	for( uInt i = startIndex; i < ( uInt )recvSize; ++i )
+		m_Msg.push_back( m_arrRecvMsg[ i ] );
+
+	{
+		std::lock_guard< std::mutex > lg( m_Mutex );
+		m_Server->PushJob( *this );
+	}
+}
+
+
+//////////////////////////////////////////////////
+//	HandleTgaFile
+//////////////////////////////////////////////////
+void
+ServSideClient::HandleTgaFile( void )
+{
+	m_MsgType = eMsgType::TGA_FILE;
+}
+
+
+//////////////////////////////////////////////////
+//	HandleTgaChunk
+//////////////////////////////////////////////////
+void
+ServSideClient::HandleTgaChunk( void )
+{
+	m_MsgType = eMsgType::TGA_CHUNK;
 }
