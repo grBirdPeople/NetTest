@@ -268,8 +268,10 @@ ServSideClient::HandleTgaFile(const uInt recvSize)
 		for (uInt i = 0; i < (uInt)recvSize; ++i)
 			m_Msg.push_back(m_arrRecvMsg[i]);
 
-		std::lock_guard< std::mutex > lg(m_Mutex);
-		m_pServer->PushJob(*this);
+		{
+			std::lock_guard< std::mutex > lg(m_Mutex);
+			m_pServer->PushJob(*this);
+		}
 	}
 }
 
