@@ -5,18 +5,17 @@
 //////////////////////////////////////////////////
 //	cTor
 //////////////////////////////////////////////////
-ServSideClient::ServSideClient( SOCKET& acceptSocket, const std::string userName, Server* server )
+ServSideClient::ServSideClient( SOCKET& acceptSocketTCP, const std::string userName, Server* server )
 	: m_UserName		( userName )
-	, m_pClientSock		( new SOCKET )
+	, m_pClientSockTCP	( new SOCKET )
+	, m_pClientSockUDP	( new SOCKET )
 	, m_pServer			( server )
 	, m_PeerPort		( 0 )
 	, m_MsgType			( eMsgType::ALL )
 	, m_ClientIsAlive	( true )
 {
-	m_pClientSock	= &acceptSocket;
-	//m_ThreadReceive	= std::thread( &ServSideClient::ReceiveFromClientSide, this );
-
-	InitClientInfo();
+	m_pClientSockTCP	= &acceptSocketTCP;
+	InitClientInfoTCP();
 }
 
 
@@ -25,30 +24,49 @@ ServSideClient::ServSideClient( SOCKET& acceptSocket, const std::string userName
 //////////////////////////////////////////////////
 ServSideClient::~ServSideClient( void )
 {
-	if( m_ThreadReceive.joinable() )
-		m_ThreadReceive.join();
+	if( m_ThreadReceiveTCP.joinable() )
+		m_ThreadReceiveTCP.join();
 
 	if( m_pServer )
 		m_pServer = nullptr;
 
-	if( m_pClientSock )
+	if( m_pClientSockTCP )
 	{
-		shutdown( *m_pClientSock, SD_BOTH );
-		closesocket( *m_pClientSock );
+		shutdown( *m_pClientSockTCP, SD_BOTH );
+		closesocket( *m_pClientSockTCP );
 	}
 
-	if( m_pClientSock )
-		AUTO_DEL( m_pClientSock );
+	if( m_pClientSockUDP )
+	{
+		shutdown( *m_pClientSockUDP, SD_BOTH );
+		closesocket( *m_pClientSockUDP );
+	}
+
+	if( m_pClientSockTCP )
+		AUTO_DEL( m_pClientSockTCP );
+
+	if( m_pClientSockUDP )
+		AUTO_DEL( m_pClientSockUDP );
 }
 
 
 //////////////////////////////////////////////////
-//	StartRecievingThread
+//	StartRecvThreadTCP
 //////////////////////////////////////////////////
 void
-ServSideClient::StartRecievingThread( void )
+ServSideClient::StartRecvThreadTCP( void )
 {
-	m_ThreadReceive	= std::thread( &ServSideClient::ReceiveFromClientSide, this );
+	m_ThreadReceiveTCP	= std::thread( &ServSideClient::RecvTCP, this );
+}
+
+
+//////////////////////////////////////////////////
+//	StartRecvThreadUDP
+//////////////////////////////////////////////////
+void
+ServSideClient::StartRecvThreadUDP( void )
+{
+	m_ThreadReceiveUDP	= std::thread( &ServSideClient::RecvUDP, this );
 }
 
 
@@ -66,13 +84,11 @@ ServSideClient::Kill( void )
 //	GetClientInfo
 //////////////////////////////////////////////////
 void
-ServSideClient::InitClientInfo( void )
+ServSideClient::InitClientInfoTCP( void )
 {
 	struct sockaddr_in	clientPeerInfo;
-
 	int peerLength = sizeof( clientPeerInfo );
-
-	getpeername( *m_pClientSock, ( struct sockaddr* )&clientPeerInfo, &peerLength );
+	getpeername( *m_pClientSockTCP, ( struct sockaddr* )&clientPeerInfo, &peerLength );
 
 	m_PeerIP	= inet_ntoa( clientPeerInfo.sin_addr );
 	m_PeerPort	= clientPeerInfo.sin_port;
@@ -83,7 +99,7 @@ ServSideClient::InitClientInfo( void )
 //	Receive
 //////////////////////////////////////////////////
 void
-ServSideClient::ReceiveFromClientSide( void )
+ServSideClient::RecvTCP( void )
 {
 	uInt whisperUserStartIndex	= 0;
 	uInt whisperUserAfterIndex	= 0;
@@ -93,7 +109,7 @@ ServSideClient::ReceiveFromClientSide( void )
 	while( m_ClientIsAlive )
 	{
 		memset( m_arrRecvMsg, '\0', MAX_CHARS );
-		int recvSize = recv( *m_pClientSock, m_arrRecvMsg, MAX_CHARS, 0 );
+		int recvSize = recv( *m_pClientSockTCP, m_arrRecvMsg, MAX_CHARS, 0 );
 
 		if( m_ClientIsAlive == false )
 			continue;
@@ -186,6 +202,15 @@ ServSideClient::ReceiveFromClientSide( void )
 			break;	// Case end //
 		}
 	}
+}
+
+
+//////////////////////////////////////////////////
+//	HandleTxt
+//////////////////////////////////////////////////
+void
+ServSideClient::RecvUDP( void )
+{
 }
 
 

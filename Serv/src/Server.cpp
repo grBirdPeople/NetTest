@@ -342,8 +342,6 @@ void Server::Listen( void )
 		std::cerr << "\n> Listening socket failed with error: " << WSAGetLastError() << '\n';
 		serverSockIsAlive	= false;
 	}
-	//else
-	//	std::cerr << "Listening socket creation succeeded\n";
 
 
 	 sockaddr_in serverInfo;
@@ -372,15 +370,12 @@ void Server::Listen( void )
 			serverSockIsAlive = false;
 		}
 
-		//std::cerr << "Listening on socket...\n";
+
+		SOCKET* clientSockTCP = new SOCKET;
 
 
-		SOCKET* clientSock = new SOCKET;
-		//std::cerr << "Waiting for client to connect...\n";
-
-
-		*clientSock = accept( *m_ListenSock, NULL, NULL );
-		if ( *clientSock == INVALID_SOCKET)
+		*clientSockTCP = accept( *m_ListenSock, NULL, NULL );
+		if ( *clientSockTCP == INVALID_SOCKET)
 		{
 			std::cerr << "\n> Accept failed with error: " << WSAGetLastError() << '\n';
 			closesocket( *m_ListenSock );
@@ -388,15 +383,12 @@ void Server::Listen( void )
 		}
 		else
 		{
-			//std::cout << "Clients connected: " << m_VecServSideClient.size() + 1 << '\n';
-
 			{
 				std::lock_guard< std::mutex > lg( m_Mutex );
-				m_pQueueShake.push( new ServSideClient( *clientSock, "NoName", this ) );
-				//m_VecServSideClient.push_back( new ServSideClient( *clientSock, "NoName", this ) );
+				m_pQueueShake.push( new ServSideClient( *clientSockTCP, "NoName", this ) );
 			}
 
-			clientSock = nullptr;
+			clientSockTCP = nullptr;
 		}
 	}
 }
@@ -435,6 +427,11 @@ Server::HandShake( void )
 		}
 
 
+
+		SOCKET* clientSockUDP = new SOCKET;
+		*clientSockUDP = socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP );
+
+
 		// Send init connect confirm to client
 		msg = "All good in the hood";
 
@@ -468,7 +465,7 @@ Server::HandShake( void )
 		{
 			std::lock_guard< std::mutex > lg( m_Mutex );
 			m_pVecServSideClient.push_back( pClient );
-			pClient->StartRecievingThread();
+			pClient->StartRecvThreadTCP();
 		}
 
 		pClient = nullptr;
@@ -578,9 +575,6 @@ Server::Distribute( void )
 			std::cerr << "\n> Something in Server::Distribute() borke\n";
 			break;	// Case end
 		}
-
-
-		//m_Mutex.unlock();
 	}
 
 	pClient = nullptr;
