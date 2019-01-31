@@ -12,8 +12,8 @@ ServSideClient::ServSideClient( SOCKET& acceptSocket, const std::string userName
 	, m_PeerPort		( 0 )
 	, m_MsgType			( eMsgType::ALL )
 {
-	*m_ClientSock	= acceptSocket;
-	m_ThreadReceive	= std::thread( &ServSideClient::ReceiveFromClientSide, this );
+	m_ClientSock	= &acceptSocket;
+	//m_ThreadReceive	= std::thread( &ServSideClient::ReceiveFromClientSide, this );
 
 	InitClientInfo();
 }
@@ -30,10 +30,24 @@ ServSideClient::~ServSideClient( void )
 	if( m_ThreadReceive.joinable() )
 		m_ThreadReceive.join();
 
-	closesocket( *m_ClientSock );
+	if( m_ClientSock )
+	{
+		shutdown( *m_ClientSock, SD_BOTH );
+		closesocket( *m_ClientSock );
+	}
 
 	if( m_ClientSock )
 		AUTO_DEL( m_ClientSock );
+}
+
+
+//////////////////////////////////////////////////
+//	StartRecievingThread
+//////////////////////////////////////////////////
+void
+ServSideClient::StartRecievingThread( void )
+{
+	m_ThreadReceive	= std::thread( &ServSideClient::ReceiveFromClientSide, this );
 }
 
 
@@ -100,7 +114,6 @@ ServSideClient::ReceiveFromClientSide( void )
 
 				// Find whisper at username
 				m_whisperAtUserName.clear();
-
 				for( uInt i = whisperUserStartIndex; i < ( uInt )recvSize; ++i )
 				{
 					if( m_arrRecvMsg[ i ] == ' ' )
@@ -117,19 +130,24 @@ ServSideClient::ReceiveFromClientSide( void )
 						break;
 					}
 
-					m_whisperAtUserName.push_back( m_arrRecvMsg[ i ] );
+
+					{
+						std::lock_guard< std::mutex > lg( m_Mutex );
+						m_whisperAtUserName.push_back( m_arrRecvMsg[ i ] );
+					}
 				}
 
 
 				// Fiund actual msg
 				m_Msg.clear();
-
 				for( uInt i = whisperMsgStartIndex; i < ( uInt )recvSize; ++i )
 					m_Msg.push_back( m_arrRecvMsg[ i ] );
 
 
-				std::unique_lock< std::mutex > uLock( m_Mutex );
-				m_Server->PushJob( *this );
+				{
+					std::lock_guard< std::mutex > lg( m_Mutex );
+					m_Server->PushJob( *this );
+				}
 			}
 
 			break;	// Case end //
@@ -156,12 +174,13 @@ ServSideClient::ReceiveFromClientSide( void )
 			if( recvSize > 0 )
 			{
 				m_Msg.clear();
-
 				for( uInt i = 0; i < ( uInt )recvSize; ++i )
 					m_Msg.push_back( m_arrRecvMsg[ i ] );
 
-				std::unique_lock< std::mutex > uLock( m_Mutex );
-				m_Server->PushJob( *this );
+				{
+					std::lock_guard< std::mutex > lg( m_Mutex );
+					m_Server->PushJob( *this );
+				}
 			}
 
 

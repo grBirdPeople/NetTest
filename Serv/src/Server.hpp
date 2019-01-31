@@ -53,11 +53,11 @@ private:
 
 	void	Admin			( void );
 	void	Listen			( void );
+	void	HandShake		( void );
 	void	Distribute		( void );
 
 	void	CreateThreads	( void );
 
-	void	HandShake		( void );
 
 	//////////////////////////////////////////////////
 	
@@ -81,8 +81,9 @@ private:
 	uInt							m_CurrentServState;
 
 	bool							m_ServerIsAlive;
-	bool							m_ServerSockIsAlive;
 
 	bool							m_InitListenThread;
+
+	SOCKET*							m_ListenSock;
 
 };
