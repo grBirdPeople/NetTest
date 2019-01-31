@@ -373,7 +373,6 @@ void Server::Listen( void )
 
 		SOCKET* clientSockTCP = new SOCKET;
 
-
 		*clientSockTCP = accept( *m_ListenSock, NULL, NULL );
 		if ( *clientSockTCP == INVALID_SOCKET)
 		{
@@ -400,6 +399,76 @@ void Server::Listen( void )
 void
 Server::HandShake( void )
 {
+	//char			m_arrRecvOkMsg[ MAX_CHARS ];
+
+	//ServSideClient*	pClient = nullptr;	// No ownage // Only ptr are copied and used to fecth client info
+
+	//int				iResult;
+
+	//std::string		clientUserName;
+	//std::string		msg;
+	//std::string		whisperAtUserName;
+
+
+	//while( m_ServerIsAlive )
+	//{
+	//	while( m_pQueueShake.empty() )
+	//		Sleep( 1 );
+
+	//	if( m_pQueueShake.empty() )
+	//		continue;
+
+
+	//	{
+	//		std::lock_guard< std::mutex > lg( m_Mutex );
+	//		pClient = m_pQueueShake.front();
+	//		m_pQueueShake.pop();
+	//	}
+
+
+	//	// Send init connect confirm to client
+	//	msg = "All good in the hood";
+
+	//	iResult = send( pClient->GetSockRef(), msg.c_str(), ( size_t )strlen( msg.c_str() ), 0 );
+	//	if( iResult == SOCKET_ERROR )
+	//		std::cerr << "\n> Send failed with error: " << WSAGetLastError() << '\n';
+
+	//	
+	//	// Recieve client username
+	//	int recvSize = recv( pClient->GetSockRef(), m_arrRecvOkMsg, MAX_CHARS, 0 );
+
+	//	msg.clear();
+	//	for( uInt i = 0; i < ( uInt )recvSize; ++i )
+	//		msg.push_back( m_arrRecvOkMsg[ i ] );
+
+	//	{
+	//		std::lock_guard< std::mutex > lg( m_Mutex );
+	//		pClient->SetUserName( msg );
+	//	}
+
+	//	
+	//	// Send established connect to client
+	//	msg = "Server connection established";
+
+	//	iResult = send( pClient->GetSockRef(), msg.c_str(), ( size_t )strlen( msg.c_str() ), 0 );
+	//	if( iResult == SOCKET_ERROR )
+	//		std::cerr << "\n> Send failed with error: " << WSAGetLastError() << '\n';
+
+
+	//	// Add client to connected client pool
+	//	{
+	//		std::lock_guard< std::mutex > lg( m_Mutex );
+	//		m_pVecServSideClient.push_back( pClient );
+	//		pClient->StartRecvThreadTCP();
+	//	}
+
+	//	pClient = nullptr;
+
+
+		
+
+
+
 	char			m_arrRecvOkMsg[ MAX_CHARS ];
 
 	ServSideClient*	pClient = nullptr;	// No ownage // Only ptr are copied and used to fecth client info
@@ -428,8 +497,27 @@ Server::HandShake( void )
 
 
 
-		SOCKET* clientSockUDP = new SOCKET;
-		*clientSockUDP = socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP );
+
+		sockaddr_in clientInfo;
+		clientInfo.sin_family		= AF_INET;
+		clientInfo.sin_addr.s_addr	= inet_addr( pClient->GetPeerIP().c_str() );
+		clientInfo.sin_port			= htons( pClient->GetPeerPort() );
+
+
+		SOCKET* clientSockUDP		= new SOCKET;
+		*clientSockUDP				= socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP );
+		
+
+		int iResult = bind( *clientSockUDP, ( struct sockaddr* )&clientInfo, sizeof( clientInfo ) );
+		if( iResult == SOCKET_ERROR )
+		{
+			std::cerr << "\n> Bind function failed with error. " << WSAGetLastError() << '\n';
+			iResult = closesocket( *m_ListenSock );
+			if ( iResult == SOCKET_ERROR )
+				std::cerr << "\n> Closesocket function failed with error: " << WSAGetLastError() << '\n';
+		}
+
+
 
 
 		// Send init connect confirm to client
@@ -469,9 +557,6 @@ Server::HandShake( void )
 		}
 
 		pClient = nullptr;
-
-
-		//m_Mutex.unlock();
 	}
 }
 
