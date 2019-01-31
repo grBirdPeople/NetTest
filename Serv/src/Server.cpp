@@ -261,8 +261,7 @@ Server::Admin( void )
 					if( iResult == SOCKET_ERROR )
 						std::cerr << "Kick send failed with error: " << WSAGetLastError() << '\n';
 
-					//delete m_VecServSideClient[ kickIndex ];
-					m_VecServSideClient.erase( m_VecServSideClient.begin() + ( kickIndex + 1 ) );
+					m_VecServSideClient.erase( m_VecServSideClient.begin() + kickIndex );
 				}
 				else
 				{
