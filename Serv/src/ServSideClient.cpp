@@ -188,9 +188,13 @@ ServSideClient::RecvTCP( void )
 
 			if( recvSize > 0 )
 			{
-				( m_arrRecvMsg[ 0 ] == eMsgType::TGA_FILE )		?	HandleTgaFile() :
-				( m_arrRecvMsg[ 1 ] == eMsgType::TGA_CHUNK )	?	HandleTgaChunk() :
-																	HandleTxt( 0, ( uInt )recvSize );
+				// Temp solution // later fix
+				if( m_arrRecvMsg[ 0 ] == '2' )
+					HandleTgaFile();
+				else if( m_arrRecvMsg[ 1 ] == '3' )
+					HandleTgaChunk();
+				else
+					HandleTxt( 0, ( uInt )recvSize );
 			}
 
 
