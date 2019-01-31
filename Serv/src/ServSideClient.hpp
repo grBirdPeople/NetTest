@@ -14,12 +14,12 @@ class ServSideClient
 {
 public:
 
-	ServSideClient	( SOCKET& acceptSocket, const std::string userName, Server* server );
+	ServSideClient	( SOCKET& acceptSocketTCP, const std::string userName, Server* server );
 	~ServSideClient	( void );
 
 	//////////////////////////////////////////////////
 
-	SOCKET			GetSockRef				( void )						{ return *m_pClientSock; }
+	SOCKET			GetSockRef				( void )						{ return *m_pClientSockTCP; }
 	uInt			GetPeerPort				( void )						{ return m_PeerPort; }
 	uInt			GetMsgType				( void )						{ return m_MsgType; }
 	std::string&	GetPeerIP				( void )						{ return m_PeerIP; }
@@ -30,7 +30,8 @@ public:
 	void			SetMsg					( const std::string& msg )		{ m_Msg = msg; }
 	void			SetUserName				( const std::string& userName )	{ m_UserName = userName; }
 
-	void			StartRecievingThread	( void );
+	void			StartRecvThreadTCP		( void );
+	void			StartRecvThreadUDP		( void );
 
 	void			Kill					( void );
 
@@ -38,12 +39,13 @@ public:
 
 private:
 
-	void	InitClientInfo			( void );
-	void	ReceiveFromClientSide	( void );
+	void	InitClientInfoTCP	( void );
+	void	RecvTCP				( void );
+	void	RecvUDP				( void );
 
-	void	HandleTxt				( const uInt startIndex, const uInt recvSize );
-	void	HandleTgaFile			( void );
-	void	HandleTgaChunk			( void );
+	void	HandleTxt			( const uInt startIndex, const uInt recvSize );
+	void	HandleTgaFile		( void );
+	void	HandleTgaChunk		( void );
 
 	//////////////////////////////////////////////////
 
@@ -57,7 +59,8 @@ private:
 
 	std::string	m_whisperAtUserName;
 
-	std::thread	m_ThreadReceive;
+	std::thread	m_ThreadReceiveTCP;
+	std::thread	m_ThreadReceiveUDP;
 
 	std::mutex	m_Mutex;
 
@@ -65,7 +68,8 @@ private:
 
 	uInt		m_MsgType;
 
-	SOCKET*		m_pClientSock;
+	SOCKET*		m_pClientSockTCP;
+	SOCKET*		m_pClientSockUDP;
 
 	Server*		m_pServer;	// No ownage // Don't delete, only nullptr
 
