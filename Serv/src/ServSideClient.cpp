@@ -128,7 +128,10 @@ ServSideClient::ReceiveFromClientSide( void )
 				for( uInt i = whisperUserAfterIndex; i < ( uInt )recvSize; ++i )
 				{
 					if( m_arrRecvMsg[ i ] != ' ' )
+					{
 						whisperMsgStartIndex = i;
+						break;
+					}
 				}
 
 
