@@ -204,7 +204,7 @@ Client::Send( void )
 			if( msg[ 1 ] == '/' )
 			{
 				msg[ 0 ] = eMsgType::TGA_CHUNK + 48;
-				msg.erase( msg.begin() + 1 );
+				//msg.erase( msg.begin() + 1 );
 			}
 			else
 			{
@@ -280,13 +280,14 @@ Client::Send( void )
 						const char* dataChunk;
 
 						int imageSize=0;
-						for (size_t i = 0; i < size; i++)
+						for (size_t i = 1; i < size; i++)
 						{
 							if (size > 1024 * i)
 								imageSize++;
 							else
 								break;
 						}
+
 						infomsg += std::to_string(imageSize);
 
 						std::cout << infomsg << "\n";
@@ -306,19 +307,18 @@ Client::Send( void )
 						int writeIndex = 0;
 						int xOffset = 0;
 						int yOffset = 0;
-						Sleep(1);
+						//Sleep(1);
 						int ch = 0;
 						for (int y = 0; y < chunkHeight; ++y)
 						{
-							for (int x = 0; x < chunkWidth; ++x)
+							for (int x = 0; x < (chunkWidth*4); ++x)
 							{
-								pByteArray[writeIndex] = buffer[(y+yOffset) * orginalWidth + xOffset];
+								pByteArray[writeIndex] = buffer[((y+yOffset) * orginalWidth) + xOffset];
 								writeIndex += 1;
 								if (writeIndex > MAX_MTU_SIZE)
 								{
 									ch++;
-									infomsg = "chunk " + std::to_string(ch);
-									iResult = send(*m_ClientSock, infomsg.c_str(), strlen(infomsg.c_str()), 0);
+									iResult = send(*m_ClientSock, pByteArray, strlen(pByteArray), 0);
 									if (iResult == SOCKET_ERROR)
 										std::cerr << "Send failed with error: " << WSAGetLastError() << '\n';
 
@@ -380,7 +380,8 @@ Client::Send( void )
 			}
 		}
 		
-		if (canSend == true)
+		//if (canSend == true)
+		else
 		{
 		
 			int	iResult = send(*m_ClientSock, msg.c_str(), strlen(msg.c_str()), 0);

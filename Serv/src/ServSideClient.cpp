@@ -253,6 +253,7 @@ ServSideClient::HandleTgaFile(const uInt recvSize)
 		std::lock_guard< std::mutex > lg(m_Mutex);
 		m_pServer->PushJob(*this);
 	}
+
 	// Find data piece for amount of packages being sent
 	std::size_t found1 = m_Msg.rfind("*");
 	std::string stringChunks = m_Msg.substr(found1 + 1);
@@ -265,8 +266,8 @@ ServSideClient::HandleTgaFile(const uInt recvSize)
 		memset(m_arrRecvMsg, '\0', MAX_CHARS);
 		int recvSize = recv(*m_pClientSockTCP, m_arrRecvMsg, MAX_CHARS, 0);
 
-		for (uInt i = 0; i < (uInt)recvSize; ++i)
-			m_Msg.push_back(m_arrRecvMsg[i]);
+		for (uInt o = 0; o < (uInt)recvSize; ++o)
+			m_Msg.push_back(m_arrRecvMsg[o]);
 
 		{
 			std::lock_guard< std::mutex > lg(m_Mutex);
