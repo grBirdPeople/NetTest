@@ -318,6 +318,7 @@ Client::Send( void )
 								if (writeIndex > MAX_MTU_SIZE)
 								{
 									ch++;
+									infomsg = "chunk " + std::to_string(ch);
 									iResult = send(*m_ClientSock, pByteArray, strlen(pByteArray), 0);
 									if (iResult == SOCKET_ERROR)
 										std::cerr << "Send failed with error: " << WSAGetLastError() << '\n';
@@ -480,6 +481,7 @@ Client::Receive( void )
 			for (uInt i = 0; i < (uInt)recvSize; ++i)
 				msg.push_back(arrRecvMsg[i]);
 
+			//std::cout << "\nMsg: " << msg << '\n';
 			ReceiveImage(arrRecvMsg, msg);
 		}
 		else
@@ -516,17 +518,19 @@ Client::ReceiveImage(char arrRecvMsg[], std::string msg)
 	std::size_t found1 = msg.find("*");
 	std::size_t found2 = msg.find("*", found1 + 1);
 	std::size_t found3 = msg.find("*", found2 + 1);
-	std::size_t found4 = msg.find("*", found3 + 1);
+	//std::size_t found4 = msg.find("*", found3 + 1);
 
-	std::string filename = msg.substr(found1 + 1, found2 - (found1 + 1));
-	std::string widthString = msg.substr(found2 + 1, found3 - (found2 + 1));
-	std::string heightString = msg.substr(found3 + 1, found4 - (found3 + 1));
-	std::string chunkString = msg.substr(found4 + 1);
+	std::string filename = msg.substr(1, found1 - 1);
+	std::string widthString = msg.substr(found1 + 1, found2 - (found1 + 1));
+	std::string heightString = msg.substr(found2 + 1, found3 - (found2 + 1));
+	std::string chunkString = msg.substr(found3 + 1);
 
 	width = stoi(widthString);
 	height = stoi(heightString);
 	amountChunks = stoi(chunkString);
 	int bpp = 4;
+
+	std::cout << filename << " " << chunkString;
 
 	//char* pOutbuffer = new char[width*height*bpp];
 	unsigned char* buffer = new unsigned char[width*height*bpp];
@@ -541,23 +545,27 @@ Client::ReceiveImage(char arrRecvMsg[], std::string msg)
 	{
 		int recvSize = recv(*m_ClientSock, arrRecvMsg, MAX_MTU_SIZE, 0);
 		char* pReadBuffer = new char[MAX_MTU_SIZE];
-		for (uInt i = 0; i < (uInt)recvSize; ++i)
-			pReadBuffer[i]=arrRecvMsg[i];
+		for (uInt o = 0; o < (uInt)recvSize; ++o)
+			pReadBuffer[o]=arrRecvMsg[o];
 
 		memcpy(&buffer[lastCopiedIndex], pReadBuffer, MAX_MTU_SIZE);
 		lastCopiedIndex += MAX_MTU_SIZE;
 		bytesLeft -= MAX_MTU_SIZE;
+
+		//std::cout << i << " ";
+
 		if (bytesLeft < MAX_MTU_SIZE)
 		{
 			recvSize = recv(*m_ClientSock, arrRecvMsg, bytesLeft, 0);
-			for (uInt i = 0; i < (uInt)recvSize; ++i)
-				pReadBuffer[i] = arrRecvMsg[i];
+			for (uInt o = 0; o < (uInt)recvSize; ++o)
+				pReadBuffer[o] = arrRecvMsg[o];
 
 			memcpy(&buffer[lastCopiedIndex], pReadBuffer, bytesLeft);
 			//break;
 		}
 	}
 
+	std::cout << sizeof(buffer) << std::endl;
 
 	unsigned char* pixels;
 

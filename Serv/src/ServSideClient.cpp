@@ -13,6 +13,7 @@ ServSideClient::ServSideClient( SOCKET& acceptSocketTCP, const std::string userN
 	, m_PeerPort		( 0 )
 	, m_MsgType			( eMsgType::ALL )
 	, m_ClientIsAlive	( true )
+	, m_SendingFile		( false )
 {
 	m_pClientSockTCP	= &acceptSocketTCP;
 	InitClientInfoTCP();
@@ -106,104 +107,111 @@ ServSideClient::RecvTCP( void )
 	uInt whisperMsgStartIndex	= 0;
 
 
-	while( m_ClientIsAlive )
+	while (m_ClientIsAlive)
 	{
-		memset( m_arrRecvMsg, '\0', MAX_CHARS );
-		int recvSize = recv( *m_pClientSockTCP, m_arrRecvMsg, MAX_CHARS, 0 );
-
-		if( m_ClientIsAlive == false )
-			continue;
-
-		m_MsgType =	( m_arrRecvMsg[ 0 ] == '1' ) ? eMsgType::WHISPER : eMsgType::ALL;
-
-
-		switch( m_MsgType )
+		if (m_SendingFile == true)
 		{
-		case eMsgType::WHISPER:
+			Sleep(.1);
+		}
+		else
+		{
+			memset(m_arrRecvMsg, '\0', MAX_CHARS);
+			int recvSize = recv(*m_pClientSockTCP, m_arrRecvMsg, MAX_CHARS, 0);
+
+			if (m_ClientIsAlive == false)
+				continue;
+
+			m_MsgType = (m_arrRecvMsg[0] == '1') ? eMsgType::WHISPER : eMsgType::ALL;
 
 
-			if( recvSize > 0 )
+			switch (m_MsgType)
 			{
-				// Check until first non ' ' char
-				for( uInt i = 1; i < ( uInt )recvSize; ++i )
+			case eMsgType::WHISPER:
+
+
+				if (recvSize > 0)
 				{
-					if( m_arrRecvMsg[ i ] != ' ' )
+					// Check until first non ' ' char
+					for (uInt i = 1; i < (uInt)recvSize; ++i)
 					{
-						whisperUserStartIndex = i;
-						break;
+						if (m_arrRecvMsg[i] != ' ')
+						{
+							whisperUserStartIndex = i;
+							break;
+						}
+					}
+
+
+					// Find whisper at username
+					m_whisperAtUserName.clear();
+					for (uInt i = whisperUserStartIndex; i < (uInt)recvSize; ++i)
+					{
+						if (m_arrRecvMsg[i] != ' ')
+							m_whisperAtUserName.push_back(m_arrRecvMsg[i]);
+						else
+						{
+							whisperUserAfterIndex = i;
+							break;
+						}
+					}
+
+
+					// Check if username is valid
+					if (m_pServer->FindConnectedClient(m_whisperAtUserName) != true)
+					{
+						// Send error msg to to user or something
+						continue;
+					}
+
+
+					// Find where next char that is not ' ' is
+					for (uInt i = whisperUserAfterIndex; i < (uInt)recvSize; ++i)
+					{
+						if (m_arrRecvMsg[i] != ' ')
+						{
+							whisperMsgStartIndex = i;
+							break;
+						}
+					}
+
+
+					// Evaluate
+					if (m_arrRecvMsg[whisperMsgStartIndex] != '/')
+					{
+						HandleTxt(whisperMsgStartIndex, (uInt)recvSize);
+					}
+					else if (m_arrRecvMsg[whisperMsgStartIndex] == '/')
+					{
+						(m_arrRecvMsg[whisperMsgStartIndex + 1] == '/') ? HandleTgaChunk() : HandleTgaFile(recvSize);
 					}
 				}
 
 
-				// Find whisper at username
-				m_whisperAtUserName.clear();
-				for( uInt i = whisperUserStartIndex; i < ( uInt )recvSize; ++i )
+				break;	// Case end //
+
+
+			case eMsgType::ALL:
+
+
+				if (recvSize > 0)
 				{
-					if( m_arrRecvMsg[ i ] != ' ' )
-						m_whisperAtUserName.push_back( m_arrRecvMsg[ i ] );
+					// Temp solution // later fix
+					if (m_arrRecvMsg[0] == '2')
+						HandleTgaFile((uInt)recvSize);
+					else if (m_arrRecvMsg[1] == '3')
+						HandleTgaChunk();
 					else
-					{
-						whisperUserAfterIndex = i;
-						break;
-					}
+						HandleTxt(0, (uInt)recvSize);
 				}
 
 
-				// Check if username is valid
-				if( m_pServer->FindConnectedClient( m_whisperAtUserName ) != true )
-				{
-					// Send error msg to to user or something
-					continue;
-				}
+				break;	// Case end //
 
 
-				// Find where next char that is not ' ' is
-				for( uInt i = whisperUserAfterIndex; i < ( uInt )recvSize; ++i )
-				{
-					if( m_arrRecvMsg[ i ] != ' ' )
-					{
-						whisperMsgStartIndex = i;
-						break;
-					}
-				}
-
-
-				// Evaluate
-				if( m_arrRecvMsg[ whisperMsgStartIndex ] != '/' )
-				{
-					HandleTxt( whisperMsgStartIndex, ( uInt )recvSize );
-				}
-				else if( m_arrRecvMsg[ whisperMsgStartIndex ] == '/' )
-				{
-					( m_arrRecvMsg[ whisperMsgStartIndex + 1 ] == '/' ) ? HandleTgaChunk() : HandleTgaFile( recvSize );
-				}
+			default:
+				std::cerr << "\n> Something in ServSideClient::ReceiveFromClientSide() borke\n";
+				break;	// Case end //
 			}
-
-
-			break;	// Case end //
-
-
-		case eMsgType::ALL:
-
-
-			if( recvSize > 0 )
-			{
-				// Temp solution // later fix
-				if( m_arrRecvMsg[ 0 ] == '2' )
-					HandleTgaFile( ( uInt )recvSize );
-				else if( m_arrRecvMsg[ 1 ] == '3' )
-					HandleTgaChunk();
-				else
-					HandleTxt( 0, ( uInt )recvSize );
-			}
-
-
-			break;	// Case end //
-
-
-		default:
-			std::cerr << "\n> Something in ServSideClient::ReceiveFromClientSide() borke\n";
-			break;	// Case end //
 		}
 	}
 }
@@ -244,36 +252,18 @@ void
 ServSideClient::HandleTgaFile(const uInt recvSize)
 {
 	m_MsgType = eMsgType::TGA_FILE;
+	m_SendingFile = true;
 
 	m_Msg.clear();
 	for (uInt i = 0; i < (uInt)recvSize; ++i)
 		m_Msg.push_back(m_arrRecvMsg[i]);
+
 
 	{
 		std::lock_guard< std::mutex > lg(m_Mutex);
 		m_pServer->PushJob(*this);
 	}
 
-	// Find data piece for amount of packages being sent
-	std::size_t found1 = m_Msg.rfind("*");
-	std::string stringChunks = m_Msg.substr(found1 + 1);
-	int amountChunks = stoi(stringChunks);
-
-	// Collect all image pieces and send them out as jobs
-	for (uInt i = 0; i < amountChunks; i++)
-	{
-		m_Msg.clear();
-		memset(m_arrRecvMsg, '\0', MAX_CHARS);
-		int recvSize = recv(*m_pClientSockTCP, m_arrRecvMsg, MAX_CHARS, 0);
-
-		for (uInt o = 0; o < (uInt)recvSize; ++o)
-			m_Msg.push_back(m_arrRecvMsg[o]);
-
-		{
-			std::lock_guard< std::mutex > lg(m_Mutex);
-			m_pServer->PushJob(*this);
-		}
-	}
 }
 
 

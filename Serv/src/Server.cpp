@@ -600,6 +600,7 @@ Server::Distribute( void )
 		clientMsgType	= pClient->GetMsgType();
 		clientMsg		= pClient->GetMsg();
 
+		//std::cout << "serv1: " << clientMsg << std::endl;
 
 		switch( clientMsgType )
 		{
@@ -626,7 +627,8 @@ Server::Distribute( void )
 
 
 		case eMsgType::TGA_FILE:
-
+		{
+			
 			for (uInt i = 0; i < m_pVecServSideClient.size(); ++i)
 			{
 				if (m_pVecServSideClient[i]->GetPeerPort() == clientPort)
@@ -639,8 +641,42 @@ Server::Distribute( void )
 					std::cerr << "\n> Send failed with error: " << WSAGetLastError() << '\n';
 			}
 
-			break;	// Case end //
+			// Find data piece for amount of packages being sent
+			std::size_t found1 = clientMsg.rfind("*");
+			std::string stringChunks = clientMsg.substr(found1 + 1);
+			int amountChunks = stoi(stringChunks);
+			std::cout << clientMsg << std::endl;
+			char m_arrRecvMsg[MAX_CHARS];
 
+			// Collect all image pieces and send them out as jobs
+			for (uInt u = 0; u < amountChunks; u++)
+			{
+				clientMsg.clear();
+				memset(m_arrRecvMsg, '\0', MAX_CHARS);
+
+				int recvSize = recv(pClient->GetSockRef(), m_arrRecvMsg, MAX_CHARS, 0);
+
+				//std::cout << clientMsg << std::endl;
+
+				//for (uInt o = 0; o < (uInt)recvSize; ++o)
+				//	clientMsg.push_back(m_arrRecvMsg[o]);
+
+				for (uInt i = 0; i < m_pVecServSideClient.size(); ++i)
+				{
+					if (m_pVecServSideClient[i]->GetPeerPort() == clientPort)
+						continue;
+
+					iResult = send(m_pVecServSideClient[i]->GetSockRef(), m_arrRecvMsg, (size_t)strlen(m_arrRecvMsg), 0);
+
+					if (iResult == SOCKET_ERROR)
+						std::cerr << "\n> Send failed with error: " << WSAGetLastError() << '\n';
+				}
+			}
+
+			pClient->SetSendingFile(false);
+			
+			break;	// Case end //
+		}
 
 
 		case eMsgType::TGA_CHUNK:
@@ -648,7 +684,6 @@ Server::Distribute( void )
 
 
 			break;	// Case end //
-
 
 		case eMsgType::ALL:
 
@@ -665,7 +700,6 @@ Server::Distribute( void )
 
 
 			break;	// Case end //
-
 
 		default:
 			std::cerr << "\n> Something in Server::Distribute() borke\n";

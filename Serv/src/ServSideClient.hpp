@@ -34,6 +34,9 @@ public:
 	void			StartRecvThreadUDP		( void );
 
 	void			Kill					( void );
+	
+	bool			GetSendingFile			( void )						{ return m_SendingFile; }
+	void			SetSendingFile			( bool truefalse )				{ m_SendingFile=truefalse; }
 
 	//////////////////////////////////////////////////
 
@@ -74,5 +77,6 @@ private:
 	Server*		m_pServer;	// No ownage // Don't delete, only nullptr
 
 	bool		m_ClientIsAlive;
+	bool		m_SendingFile;
 
 };
