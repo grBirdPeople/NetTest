@@ -8,7 +8,6 @@
 ServSideClient::ServSideClient( SOCKET& acceptSocketTCP, const std::string userName, Server* server )
 	: m_UserName		( userName )
 	, m_pClientSockTCP	( new SOCKET )
-	, m_pClientSockUDP	( new SOCKET )
 	, m_pServer			( server )
 	, m_PeerPort		( 0 )
 	, m_MsgType			( eMsgType::ALL )
@@ -35,19 +34,8 @@ ServSideClient::~ServSideClient( void )
 	{
 		shutdown( *m_pClientSockTCP, SD_BOTH );
 		closesocket( *m_pClientSockTCP );
-	}
-
-	if( m_pClientSockUDP )
-	{
-		shutdown( *m_pClientSockUDP, SD_BOTH );
-		closesocket( *m_pClientSockUDP );
-	}
-
-	if( m_pClientSockTCP )
 		AUTO_DEL( m_pClientSockTCP );
-
-	if( m_pClientSockUDP )
-		AUTO_DEL( m_pClientSockUDP );
+	}
 }
 
 

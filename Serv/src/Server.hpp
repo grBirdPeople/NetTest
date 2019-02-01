@@ -38,7 +38,7 @@ public:
 	//////////////////////////////////////////////////
 
 	void	SetServerIP			( const char* serverIP )	{ m_pServerIP = serverIP; }
-	void	SetServerPort		( const uInt serverPort )	{ m_ServerPort = serverPort; }
+	void	SetServerPort		( const uInt serverPort )	{ m_ServerPortTCP = serverPort; }
 
 	void	Run					( void );
 
@@ -76,8 +76,11 @@ private:
 
 	std::mutex						m_Mutex;
 
+	SOCKET*							m_ServerSockUDP;
+
 	const char*						m_pServerIP;
-	uInt							m_ServerPort;
+	uInt							m_ServerPortTCP;
+	uInt							m_ServerPortUDP;
 
 	uInt							m_CurrentServState;
 

@@ -5,8 +5,10 @@
 //	cTor
 //////////////////////////////////////////////////
 Server::Server()
-	: m_pServerIP			( nullptr )
-	, m_ServerPort			( 0 )
+	: m_ServerSockUDP		( nullptr )
+	, m_pServerIP			( nullptr )
+	, m_ServerPortTCP		( 0 )
+	, m_ServerPortUDP		( 0 )
 	, m_CurrentServState	( eServState::INIT )
 	, m_ServerIsAlive		( true  )
 	, m_InitListenThread	( false )
@@ -132,6 +134,25 @@ Server::Init( void )
 		m_InitListenThread	= true;
 		m_CurrentServState	= eServState::RUN;
 	}
+
+
+	// Socket for UDP
+	m_ServerSockUDP			= new SOCKET;
+	* m_ServerSockUDP		= socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP );
+
+	sockaddr_in infoUDP;
+	infoUDP.sin_family		= AF_INET;
+	infoUDP.sin_addr.s_addr	= inet_addr( m_pServerIP );
+	infoUDP.sin_port		= htons( m_ServerPortUDP );
+
+	iResult = bind( *m_ServerSockUDP, ( SOCKADDR* )& infoUDP, sizeof( infoUDP ) );
+	if( iResult == SOCKET_ERROR )
+	{
+		std::cerr << "\n> Bind function failed with error. " << WSAGetLastError() << '\n';
+		iResult = closesocket( *m_ListenSock );
+		if ( iResult == SOCKET_ERROR )
+			std::cerr << "\n> Closesocket function failed with error: " << WSAGetLastError() << '\n';
+	}
 }
 
 
@@ -143,6 +164,16 @@ Server::DeInit( void )
 {
 	for( auto& i : m_pVecServSideClient )
 		AUTO_DEL( i );
+
+
+	if( m_ServerSockUDP )
+	{
+		shutdown( *m_ServerSockUDP, SD_BOTH );
+		closesocket( *m_ServerSockUDP );
+
+		AUTO_DEL( m_ServerSockUDP );
+	}
+	
 
 	WSACleanup();
 }
@@ -347,7 +378,7 @@ void Server::Listen( void )
 	 sockaddr_in serverInfo;
 	 serverInfo.sin_family		= AF_INET;
 	 serverInfo.sin_addr.s_addr	= inet_addr( m_pServerIP );
-	 serverInfo.sin_port		= htons( m_ServerPort );
+	 serverInfo.sin_port		= htons( m_ServerPortTCP );
 
 
 	int iResult = bind( *m_ListenSock, ( SOCKADDR* )& serverInfo, sizeof( serverInfo ) );
@@ -399,6 +430,76 @@ void Server::Listen( void )
 void
 Server::HandShake( void )
 {
+	char			m_arrRecvOkMsg[ MAX_CHARS ];
+
+	ServSideClient*	pClient = nullptr;	// No ownage // Only ptr are copied and used to fecth client info
+
+	int				iResult;
+
+	std::string		clientUserName;
+	std::string		msg;
+	std::string		whisperAtUserName;
+
+
+	while( m_ServerIsAlive )
+	{
+		while( m_pQueueShake.empty() )
+			Sleep( 1 );
+
+		if( m_pQueueShake.empty() )
+			continue;
+
+
+		{
+			std::lock_guard< std::mutex > lg( m_Mutex );
+			pClient = m_pQueueShake.front();
+			m_pQueueShake.pop();
+		}
+
+
+		// Send init connect confirm to client
+		msg = "All good in the hood";
+
+		iResult = send( pClient->GetSockRef(), msg.c_str(), ( size_t )strlen( msg.c_str() ), 0 );
+		if( iResult == SOCKET_ERROR )
+			std::cerr << "\n> Send failed with error: " << WSAGetLastError() << '\n';
+
+
+		// Recieve client username
+		int recvSize = recv( pClient->GetSockRef(), m_arrRecvOkMsg, MAX_CHARS, 0 );
+
+		msg.clear();
+		for( uInt i = 0; i < ( uInt )recvSize; ++i )
+			msg.push_back( m_arrRecvOkMsg[ i ] );
+
+		{
+			std::lock_guard< std::mutex > lg( m_Mutex );
+			pClient->SetUserName( msg );
+		}
+
+
+		// Send established connect to client
+		msg = "Server connection established";
+
+		iResult = send( pClient->GetSockRef(), msg.c_str(), ( size_t )strlen( msg.c_str() ), 0 );
+		if( iResult == SOCKET_ERROR )
+			std::cerr << "\n> Send failed with error: " << WSAGetLastError() << '\n';
+
+
+		// Add client to connected client pool
+		{
+			std::lock_guard< std::mutex > lg( m_Mutex );
+			m_pVecServSideClient.push_back( pClient );
+			pClient->StartRecvThreadTCP();
+		}
+
+
+		pClient = nullptr;
+	}
+		
+
+
+
 	//char			m_arrRecvOkMsg[ MAX_CHARS ];
 
 	//ServSideClient*	pClient = nullptr;	// No ownage // Only ptr are copied and used to fecth client info
@@ -423,6 +524,26 @@ Server::HandShake( void )
 	//		std::lock_guard< std::mutex > lg( m_Mutex );
 	//		pClient = m_pQueueShake.front();
 	//		m_pQueueShake.pop();
+	//	}
+
+
+	//	sockaddr_in clientInfo;
+	//	clientInfo.sin_family		= AF_INET;
+	//	clientInfo.sin_addr.s_addr	= inet_addr( pClient->GetPeerIP().c_str() );
+	//	clientInfo.sin_port			= htons( pClient->GetPeerPort() );
+
+
+	//	SOCKET* clientSockUDP		= new SOCKET;
+	//	*clientSockUDP				= socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP );
+	//	
+
+	//	int iResult = bind( *clientSockUDP, ( struct sockaddr* )&clientInfo, sizeof( clientInfo ) );
+	//	if( iResult == SOCKET_ERROR )
+	//	{
+	//		std::cerr << "\n> Bind function failed with error. " << WSAGetLastError() << '\n';
+	//		iResult = closesocket( *m_ListenSock );
+	//		if ( iResult == SOCKET_ERROR )
+	//			std::cerr << "\n> Closesocket function failed with error: " << WSAGetLastError() << '\n';
 	//	}
 
 
@@ -463,101 +584,7 @@ Server::HandShake( void )
 	//	}
 
 	//	pClient = nullptr;
-
-
-		
-
-
-
-	char			m_arrRecvOkMsg[ MAX_CHARS ];
-
-	ServSideClient*	pClient = nullptr;	// No ownage // Only ptr are copied and used to fecth client info
-
-	int				iResult;
-
-	std::string		clientUserName;
-	std::string		msg;
-	std::string		whisperAtUserName;
-
-
-	while( m_ServerIsAlive )
-	{
-		while( m_pQueueShake.empty() )
-			Sleep( 1 );
-
-		if( m_pQueueShake.empty() )
-			continue;
-
-
-		{
-			std::lock_guard< std::mutex > lg( m_Mutex );
-			pClient = m_pQueueShake.front();
-			m_pQueueShake.pop();
-		}
-
-
-
-
-		sockaddr_in clientInfo;
-		clientInfo.sin_family		= AF_INET;
-		clientInfo.sin_addr.s_addr	= inet_addr( pClient->GetPeerIP().c_str() );
-		clientInfo.sin_port			= htons( pClient->GetPeerPort() );
-
-
-		SOCKET* clientSockUDP		= new SOCKET;
-		*clientSockUDP				= socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP );
-		
-
-		int iResult = bind( *clientSockUDP, ( struct sockaddr* )&clientInfo, sizeof( clientInfo ) );
-		if( iResult == SOCKET_ERROR )
-		{
-			std::cerr << "\n> Bind function failed with error. " << WSAGetLastError() << '\n';
-			iResult = closesocket( *m_ListenSock );
-			if ( iResult == SOCKET_ERROR )
-				std::cerr << "\n> Closesocket function failed with error: " << WSAGetLastError() << '\n';
-		}
-
-
-
-
-		// Send init connect confirm to client
-		msg = "All good in the hood";
-
-		iResult = send( pClient->GetSockRef(), msg.c_str(), ( size_t )strlen( msg.c_str() ), 0 );
-		if( iResult == SOCKET_ERROR )
-			std::cerr << "\n> Send failed with error: " << WSAGetLastError() << '\n';
-
-		
-		// Recieve client username
-		int recvSize = recv( pClient->GetSockRef(), m_arrRecvOkMsg, MAX_CHARS, 0 );
-
-		msg.clear();
-		for( uInt i = 0; i < ( uInt )recvSize; ++i )
-			msg.push_back( m_arrRecvOkMsg[ i ] );
-
-		{
-			std::lock_guard< std::mutex > lg( m_Mutex );
-			pClient->SetUserName( msg );
-		}
-
-		
-		// Send established connect to client
-		msg = "Server connection established";
-
-		iResult = send( pClient->GetSockRef(), msg.c_str(), ( size_t )strlen( msg.c_str() ), 0 );
-		if( iResult == SOCKET_ERROR )
-			std::cerr << "\n> Send failed with error: " << WSAGetLastError() << '\n';
-
-
-		// Add client to connected client pool
-		{
-			std::lock_guard< std::mutex > lg( m_Mutex );
-			m_pVecServSideClient.push_back( pClient );
-			pClient->StartRecvThreadTCP();
-		}
-
-		pClient = nullptr;
-	}
+	//}
 }
 
 
