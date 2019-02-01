@@ -306,6 +306,8 @@ Client::Send( void )
 						int writeIndex = 0;
 						int xOffset = 0;
 						int yOffset = 0;
+						Sleep(1);
+						int ch = 0;
 						for (int y = 0; y < chunkHeight; ++y)
 						{
 							for (int x = 0; x < chunkWidth; ++x)
@@ -314,7 +316,9 @@ Client::Send( void )
 								writeIndex += 1;
 								if (writeIndex > MAX_MTU_SIZE)
 								{
-									iResult = send(*m_ClientSock, pByteArray, strlen(pByteArray), 0);
+									ch++;
+									infomsg = "chunk " + std::to_string(ch);
+									iResult = send(*m_ClientSock, infomsg.c_str(), strlen(infomsg.c_str()), 0);
 									if (iResult == SOCKET_ERROR)
 										std::cerr << "Send failed with error: " << WSAGetLastError() << '\n';
 
@@ -469,7 +473,7 @@ Client::Receive( void )
 	{
 		int recvSize = recv( *m_ClientSock, arrRecvMsg, MAX_CHARS, 0 );
 
-		if (arrRecvMsg[0] == '1'|| arrRecvMsg[0] == '2')
+		if (arrRecvMsg[0] == '2'|| arrRecvMsg[0] == '3')
 		{
 			msg.clear();
 			for (uInt i = 0; i < (uInt)recvSize; ++i)
