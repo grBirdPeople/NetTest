@@ -69,7 +69,6 @@ private:
 	uInt		m_MsgType;
 
 	SOCKET*		m_pClientSockTCP;
-	SOCKET*		m_pClientSockUDP;
 
 	Server*		m_pServer;	// No ownage // Don't delete, only nullptr
 
