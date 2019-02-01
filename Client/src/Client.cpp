@@ -533,20 +533,23 @@ Client::ReceiveImage(char arrRecvMsg[], std::string msg)
 	std::cout << filename << " " << chunkString;
 
 	//char* pOutbuffer = new char[width*height*bpp];
-	unsigned char* buffer = new unsigned char[width*height*bpp];
+	unsigned char* buffer = new unsigned char[(width*height)*bpp];
 
 	// bpp = bytes per pixel ( 4 )
-	int lastCopiedIndex = 0;
-	int bytesLeft = width * height*bpp;
+	size_t lastCopiedIndex = 0;
+	size_t bytesLeft = width * height*bpp;
 
+	//unsigned char* buffer = new (unsigned char[size]);
 
+	char recvMsg[MAX_MTU_SIZE];
 	//while (tcp.poll() == true) <- Make this work? How?
 	for(int i=0; i<amountChunks; i++)	// <- Temp solution meanwhile
 	{
-		int recvSize = recv(*m_ClientSock, arrRecvMsg, MAX_MTU_SIZE, 0);
+		
+		int recvSize = recv(*m_ClientSock, recvMsg, MAX_MTU_SIZE, 0);
 		char* pReadBuffer = new char[MAX_MTU_SIZE];
 		for (uInt o = 0; o < (uInt)recvSize; ++o)
-			pReadBuffer[o]=arrRecvMsg[o];
+			pReadBuffer[o]=recvMsg[o];
 
 		memcpy(&buffer[lastCopiedIndex], pReadBuffer, MAX_MTU_SIZE);
 		lastCopiedIndex += MAX_MTU_SIZE;
@@ -556,16 +559,18 @@ Client::ReceiveImage(char arrRecvMsg[], std::string msg)
 
 		if (bytesLeft < MAX_MTU_SIZE)
 		{
-			recvSize = recv(*m_ClientSock, arrRecvMsg, bytesLeft, 0);
+			recvSize = recv(*m_ClientSock, recvMsg, bytesLeft, 0);
 			for (uInt o = 0; o < (uInt)recvSize; ++o)
-				pReadBuffer[o] = arrRecvMsg[o];
+				pReadBuffer[o] = recvMsg[o];
 
 			memcpy(&buffer[lastCopiedIndex], pReadBuffer, bytesLeft);
+			//amountChunks = i;
 			//break;
 		}
+		delete pReadBuffer;
 	}
 
-	std::cout << sizeof(buffer) << std::endl;
+	//std::cout << std::endl << "Buffer:" << buffer << std::endl;
 
 	unsigned char* pixels;
 
@@ -577,8 +582,11 @@ Client::ReceiveImage(char arrRecvMsg[], std::string msg)
 
 		int pos = 0;
 
-		pixels = (unsigned char*)tgaRead(buffer, TGA_READER_ABGR);
+		//FILE *file = fopen("a.tga", "r");
+		//fread(buffer, 1, (width*height)*bpp, file);
 
+		//pixels = (unsigned char*)tgaRead(buffer, TGA_READER_ABGR);
+		//pixels = buffer;
 
 		targa_header header;       // variable of targa_header type
 
@@ -604,12 +612,13 @@ Client::ReceiveImage(char arrRecvMsg[], std::string msg)
 		LPCSTR szDirPath = "downloads";
 		CreateDirectory(szDirPath, NULL);
 		FILE *tga2;                 // pointer to file that we will write
-		std::string fileName = (std::string) "downloads/"+m_UserName+"_file1.tga";
+		std::string fileName = (std::string) "downloads/"+filename+".tga";
 		tga2 = fopen(fileName.c_str(), "wb");
 
 
 		write_header(header, tga2);
 
+		/*
 		// To write in entire image
 		for (int y = 0; y < height; ++y)
 		{
@@ -624,9 +633,12 @@ Client::ReceiveImage(char arrRecvMsg[], std::string msg)
 
 			}
 		}
+		*/
 
 		fclose(tga2);
+		std::cout << "Received file.\n";
 
+		//memset(arrRecvMsg, '\0', MAX_CHARS);
 	}
 
 	// To write a chunk
