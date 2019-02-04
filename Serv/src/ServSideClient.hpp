@@ -31,7 +31,6 @@ public:
 	void			SetUserName				( const std::string& userName )	{ m_UserName = userName; }
 
 	void			StartRecvThreadTCP		( void );
-	void			StartRecvThreadUDP		( void );
 
 	void			Kill					( void );
 	
@@ -63,7 +62,6 @@ private:
 	std::string	m_whisperAtUserName;
 
 	std::thread	m_ThreadReceiveTCP;
-	std::thread	m_ThreadReceiveUDP;
 
 	std::mutex	m_Mutex;
 
