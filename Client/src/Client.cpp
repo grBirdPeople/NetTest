@@ -8,7 +8,8 @@
 //	cTor
 //////////////////////////////////////////////////
 Client::Client( void )
-	: m_ClientSock			( new SOCKET )
+	: m_ClientSockTCP		( new SOCKET )
+	, m_ClientSockUDP		( new SOCKET )
 	, m_UserName			( "No name set" )
 	, m_ServerIP			( nullptr )
 	, m_ServerPort			( 0 )
@@ -25,10 +26,19 @@ Client::Client( void )
 //////////////////////////////////////////////////
 Client::~Client( void )
 {
-	if( m_ClientSock )
+	if( m_ClientSockTCP )
 	{
-		closesocket( *m_ClientSock );
-		AUTO_DEL( m_ClientSock );
+		// add shutdown here or somewhere
+		closesocket( *m_ClientSockTCP );
+		AUTO_DEL( m_ClientSockTCP );
+	}
+
+
+	if( m_ClientSockUDP )
+	{
+		// add shutdown here or somewhere
+		closesocket( *m_ClientSockUDP );
+		AUTO_DEL( m_ClientSockUDP );
 	}
 }
 
@@ -98,14 +108,26 @@ Client::Init( void )
 	}
 
 
-	*m_ClientSock = socket( AF_INET, SOCK_STREAM, IPPROTO_TCP );
-	if( *m_ClientSock == INVALID_SOCKET )
+	// UDP sock
+	*m_ClientSockUDP = socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP );
+	if( *m_ClientSockTCP == INVALID_SOCKET )
+		std::cerr << "Listening socket failed with error: " << WSAGetLastError() << '\n';
+
+
+	// TCP sock
+	*m_ClientSockTCP = socket( AF_INET, SOCK_STREAM, IPPROTO_TCP );
+	if( *m_ClientSockTCP == INVALID_SOCKET )
 	{
 		std::cerr << "Listening socket failed with error: " << WSAGetLastError() << '\n';
 		m_CurrentClientState = eState::END;
 	}
 	else
 		m_CurrentClientState = eState::CONNECT;
+
+
+	// UDP send // put at correct place
+	// sendto(s, pkt, strlen(pkt), 0, (sockaddr *)&dest, sizeof(dest));
+
 }
 
 
@@ -125,11 +147,11 @@ Client::ServerConnect( void )
     clientService.sin_addr.s_addr	= inet_addr( m_ServerIP );
     clientService.sin_port			= htons( m_ServerPort );
 
-	iResult = connect( *m_ClientSock, ( SOCKADDR* ) & clientService, sizeof( clientService ) );
+	iResult = connect( *m_ClientSockTCP, ( SOCKADDR* ) & clientService, sizeof( clientService ) );
 	if (iResult == SOCKET_ERROR)
 	{
 		std::cerr << "Connect function failed with error: " << WSAGetLastError() << '\n';
-		iResult = closesocket( *m_ClientSock );
+		iResult = closesocket( *m_ClientSockTCP );
 
 		if (iResult == SOCKET_ERROR)
 			std::cerr << "Closesocket function failed with error: " << WSAGetLastError() << '\n';
@@ -142,7 +164,7 @@ Client::ServerConnect( void )
 
 
 		// Get confirm from server
-		recvSize = recv( *m_ClientSock, arrRecvMsg, MAX_CHARS, 0 );
+		recvSize = recv( *m_ClientSockTCP, arrRecvMsg, MAX_CHARS, 0 );
 
 		msg.clear();
 		for ( uInt i = 0; i < ( uInt )recvSize; ++i )
@@ -152,14 +174,14 @@ Client::ServerConnect( void )
 		// Send username to server
 		if( msg == "All good in the hood" )
 		{
-			iResult = send( *m_ClientSock, m_UserName.c_str(), strlen( m_UserName.c_str() ), 0);
+			iResult = send( *m_ClientSockTCP, m_UserName.c_str(), strlen( m_UserName.c_str() ), 0);
 			if( iResult == SOCKET_ERROR )
 				std::cerr << "\nSend failed with error: " << WSAGetLastError() << '\n';
 		}
 
 
 		// Get permishion from servers
-		recvSize = recv( *m_ClientSock, arrRecvMsg, MAX_CHARS, 0 );
+		recvSize = recv( *m_ClientSockTCP, arrRecvMsg, MAX_CHARS, 0 );
 
 		msg.clear();
 		for ( uInt i = 0; i < ( uInt )recvSize; ++i )
@@ -191,7 +213,7 @@ Client::Send( void )
 		std::cout << "> ";
 		std::getline( std::cin, msg );
 
-		bool canSend = true;
+		bool	canSend = true;
 
 
 		// works but unfinished
@@ -293,7 +315,7 @@ Client::Send( void )
 						std::cout << infomsg << "\n";
 
 						// Send header file
-						int	iResult = send(*m_ClientSock, infomsg.c_str(), strlen(infomsg.c_str()), 0);
+						int	iResult = send(*m_ClientSockTCP, infomsg.c_str(), strlen(infomsg.c_str()), 0);
 						if (iResult == SOCKET_ERROR)
 							std::cerr << "Send failed with error: " << WSAGetLastError() << '\n';
 
@@ -319,7 +341,7 @@ Client::Send( void )
 								{
 									ch++;
 									infomsg = "chunk " + std::to_string(ch);
-									iResult = send(*m_ClientSock, pByteArray, strlen(pByteArray), 0);
+									iResult = send(*m_ClientSockTCP, pByteArray, strlen(pByteArray), 0);
 									if (iResult == SOCKET_ERROR)
 										std::cerr << "Send failed with error: " << WSAGetLastError() << '\n';
 
@@ -385,7 +407,7 @@ Client::Send( void )
 		else
 		{
 		
-			int	iResult = send(*m_ClientSock, msg.c_str(), strlen(msg.c_str()), 0);
+			int	iResult = send(*m_ClientSockTCP, msg.c_str(), strlen(msg.c_str()), 0);
 			if (iResult == SOCKET_ERROR)
 				std::cerr << "Send failed with error: " << WSAGetLastError() << '\n';
 		}
@@ -473,7 +495,7 @@ Client::Receive( void )
 
 	while( true )
 	{
-		int recvSize = recv( *m_ClientSock, arrRecvMsg, MAX_CHARS, 0 );
+		int recvSize = recv( *m_ClientSockTCP, arrRecvMsg, MAX_CHARS, 0 );
 
 		if (arrRecvMsg[0] == '2'|| arrRecvMsg[0] == '3')
 		{
@@ -546,7 +568,7 @@ Client::ReceiveImage(char arrRecvMsg[], std::string msg)
 	for(int i=0; i<amountChunks; i++)	// <- Temp solution meanwhile
 	{
 		
-		int recvSize = recv(*m_ClientSock, recvMsg, MAX_MTU_SIZE, 0);
+		int recvSize = recv(*m_ClientSockTCP, recvMsg, MAX_MTU_SIZE, 0);
 		char* pReadBuffer = new char[MAX_MTU_SIZE];
 		for (uInt o = 0; o < (uInt)recvSize; ++o)
 			pReadBuffer[o]=recvMsg[o];
@@ -559,7 +581,7 @@ Client::ReceiveImage(char arrRecvMsg[], std::string msg)
 
 		if (bytesLeft < MAX_MTU_SIZE)
 		{
-			recvSize = recv(*m_ClientSock, recvMsg, bytesLeft, 0);
+			recvSize = recv(*m_ClientSockTCP, recvMsg, bytesLeft, 0);
 			for (uInt o = 0; o < (uInt)recvSize; ++o)
 				pReadBuffer[o] = recvMsg[o];
 

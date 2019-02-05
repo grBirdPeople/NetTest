@@ -59,7 +59,6 @@ private:
 
 	void	CreateThreads	( void );
 
-
 	//////////////////////////////////////////////////
 	
 private:

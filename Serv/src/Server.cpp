@@ -138,7 +138,7 @@ Server::Init( void )
 
 	// Socket for UDP
 	m_ServerSockUDP			= new SOCKET;
-	* m_ServerSockUDP		= socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP );
+	*m_ServerSockUDP		= socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP );
 
 	sockaddr_in infoUDP;
 	infoUDP.sin_family		= AF_INET;
@@ -682,7 +682,7 @@ Server::Distribute( void )
 				memset(m_arrRecvMsg, '\0', MAX_CHARS);
 
 				int recvSize = recv(pClient->GetSockRef(), m_arrRecvMsg, MAX_CHARS, 0);
-
+				
 				//std::cout << clientMsg << std::endl;
 
 				//for (uInt o = 0; o < (uInt)recvSize; ++o)

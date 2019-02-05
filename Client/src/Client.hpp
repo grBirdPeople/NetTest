@@ -57,7 +57,8 @@ private:
 
 	unsigned char* testBuffer;
 
-	SOCKET*		m_ClientSock;
+	SOCKET*		m_ClientSockTCP;
+	SOCKET*		m_ClientSockUDP;
 
 	std::string	m_UserName;
 
